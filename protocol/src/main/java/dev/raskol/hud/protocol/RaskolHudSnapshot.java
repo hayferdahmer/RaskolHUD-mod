@@ -1,12 +1,13 @@
 package dev.raskol.hud.protocol;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
- * Immutable, server-authored character state displayed by the client HUD.
+ * Неизменяемый снимок состояния персонажа, подготовленный сервером для HUD.
  *
- * Values are presentation data only. The client must never use this record
- * to calculate combat outcomes or mutate player progression.
+ * Данные предназначены только для отображения. Клиент не рассчитывает по ним
+ * боевые исходы и не изменяет прогрессию или характеристики игрока.
  */
 public record RaskolHudSnapshot(
         long sampledAtEpochMillis,
@@ -19,7 +20,9 @@ public record RaskolHudSnapshot(
         int health,
         int healthMax,
         int resource,
-        int resourceMax) {
+        int resourceMax,
+        List<RaskolHudEffect> activeEffects,
+        List<RaskolHudEffect> damageOverTime) {
 
     public RaskolHudSnapshot {
         classId = safe(classId);
@@ -33,10 +36,23 @@ public record RaskolHudSnapshot(
         health = clampKnownMaximum(health, healthMax);
         resourceMax = Math.max(0, resourceMax);
         resource = clampKnownMaximum(resource, resourceMax);
+
+        activeEffects = safeEffects(activeEffects);
+        damageOverTime = safeEffects(damageOverTime);
     }
 
     private static String safe(String value) {
         return Objects.requireNonNullElse(value, "");
+    }
+
+    private static List<RaskolHudEffect> safeEffects(List<RaskolHudEffect> effects) {
+        if (effects == null || effects.isEmpty()) {
+            return List.of();
+        }
+        return effects.stream()
+                .filter(Objects::nonNull)
+                .limit(RaskolHudProtocol.MAX_EFFECTS)
+                .toList();
     }
 
     private static int clampKnownMaximum(int value, int maximum) {
