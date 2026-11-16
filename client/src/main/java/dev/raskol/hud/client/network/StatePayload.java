@@ -14,7 +14,7 @@ public record StatePayload(byte[] body) implements CustomPacketPayload {
 
     public static final StreamCodec<RegistryFriendlyByteBuf, StatePayload> CODEC =
             StreamCodec.ofMember(
-                    (buf, payload) -> {
+                    (payload, buf) -> {
                         byte[] body = payload.body();
                         if (body.length > MAX_BODY_BYTES) {
                             throw new IllegalArgumentException("RaskolHUD payload is too large");
