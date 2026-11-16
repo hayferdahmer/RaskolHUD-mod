@@ -18,20 +18,25 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 import org.bukkit.inventory.ItemStack;
 
+import dev.raskol.hud.protocol.CrosshairSignalRules;
+import dev.raskol.hud.protocol.CrosshairSignalRules.DotState;
 import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudCooldown;
 import dev.raskol.hud.protocol.RaskolHudProtocol.CrosshairSignal;
@@ -44,9 +49,11 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
     private final Set<UUID> hudClients = new HashSet<>();
     private final Map<UUID, Set<String>> previousPlayerEffects = new HashMap<>();
     private final Map<UUID, Boolean> previousStealthStates = new HashMap<>();
-    private final Map<UUID, Set<String>> previousPriestWards = new HashMap<>();
+    private final Map<UUID, PendingBackstab> pendingBackstabs = new HashMap<>();
     private Object raskolClasses;
     private boolean warnedOptionalApi;
+
+    private record PendingBackstab(UUID targetUuid, long expiresAtMillis) {}
 
     @Override
     public void onEnable() {
@@ -76,7 +83,7 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         hudClients.clear();
         previousPlayerEffects.clear();
         previousStealthStates.clear();
-        previousPriestWards.clear();
+        pendingBackstabs.clear();
         raskolClasses = null;
     }
 
@@ -98,7 +105,7 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         hudClients.remove(playerId);
         previousPlayerEffects.remove(playerId);
         previousStealthStates.remove(playerId);
-        previousPriestWards.remove(playerId);
+        pendingBackstabs.remove(playerId);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -112,37 +119,199 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
 
         String classId = classIdOf(attacker);
         UUID ownerId = attacker.getUniqueId();
+        Map<String, DotState> dotsBefore = ownedDotStates(target, ownerId);
         switch (classId) {
             case "warlock" -> signalAfterTargetState(
                     attacker, target,
-                    () -> hasOwnedDot(target, ownerId, null)
+                    () -> CrosshairSignalRules.hasNewOrRefreshedDot(
+                                    dotsBefore, ownedDotStates(target, ownerId), null)
                             ? CrosshairSignal.WARLOCK_CURSE : CrosshairSignal.NONE);
-            case "hunter" -> signalAfterTargetState(
-                    attacker, target,
-                    () -> target.isGlowing()
-                                    || target.hasPotionEffect(PotionEffectType.SLOWNESS)
-                                    || hasOwnedCrowdControl(target, ownerId)
-                            ? CrosshairSignal.HUNTER_MARK : CrosshairSignal.NONE);
+            case "hunter" -> {
+                // Метка определяется по конкретному свитку, а не по чужому Glowing.
+            }
             case "warrior" -> signalAfterTargetState(
                     attacker, target,
-                    () -> hasOwnedDot(target, ownerId, Set.of("bleed", "bleed_passive"))
+                    () -> CrosshairSignalRules.hasNewOrRefreshedDot(
+                                    dotsBefore,
+                                    ownedDotStates(target, ownerId),
+                                    Set.of("bleed", "bleed_passive"))
                             ? CrosshairSignal.WARRIOR_BLEED : CrosshairSignal.WARRIOR_HIT);
             case "mage" -> signalAfterTargetState(
                     attacker, target,
-                    () -> hasOwnedDot(target, ownerId, Set.of("chilled"))
+                    () -> CrosshairSignalRules.hasNewOrRefreshedDot(
+                                    dotsBefore, ownedDotStates(target, ownerId), Set.of("chilled"))
                             ? CrosshairSignal.MAGE_FROST : CrosshairSignal.NONE);
             case "rogue" -> {
-                if (isBehind(target, attacker)) {
-                    sendCrosshairSignal(attacker, CrosshairSignal.ROGUE_BACKSTAB);
-                } else if (attacker.isSneaking()
-                        || attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
-                    sendCrosshairSignal(attacker, CrosshairSignal.ROGUE_STEALTH);
+                PendingBackstab pending = pendingBackstabs.get(ownerId);
+                if (pending != null && pending.expiresAtMillis() <= System.currentTimeMillis()) {
+                    pendingBackstabs.remove(ownerId);
+                } else if (pending != null && pending.targetUuid().equals(target.getUniqueId())) {
+                    pendingBackstabs.remove(ownerId);
+                    if (isBehind(target, attacker)) {
+                        sendCrosshairSignal(attacker, CrosshairSignal.ROGUE_BACKSTAB);
+                    }
                 }
             }
             default -> {
                 // Для неизвестного класса боевые импульсы не отправляются.
             }
         }
+    }
+
+    /**
+     * Считывает контекст свитка до обработчика RaskolClasses (NORMAL).
+     * Сам импульс отправляется только после подтверждённого изменения эффекта.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onAbilityInteraction(PlayerInteractEvent event) {
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        if (!hudClients.contains(player.getUniqueId())) {
+            return;
+        }
+
+        String abilityId = readAbilityId(event.getItem());
+        if (abilityId.isBlank()) {
+            return;
+        }
+
+        String classId = classIdOf(player);
+        if ("hunter".equals(classId)
+                && ("wolf_mark".equals(abilityId) || "aimed_shot".equals(abilityId))) {
+            int range = "aimed_shot".equals(abilityId) ? 24 : 20;
+            Entity entity = player.getTargetEntity(range);
+            if (entity instanceof LivingEntity target) {
+                Map<String, Long> before = hunterMarkState(target);
+                getServer().getScheduler().runTaskLater(this, () -> {
+                    if (player.isOnline() && target.isValid() && !target.isDead()
+                            && hunterMarkState(target).containsKey("glowing")
+                            && CrosshairSignalRules.hasNewOrExtendedState(
+                                    before, hunterMarkState(target), 25L)) {
+                        sendCrosshairSignal(player, CrosshairSignal.HUNTER_MARK);
+                    }
+                }, 1L);
+            }
+            return;
+        }
+
+        if ("rogue".equals(classId) && "backstab".equals(abilityId)) {
+            Entity entity = player.getTargetEntity(4);
+            if (entity instanceof LivingEntity target) {
+                pendingBackstabs.put(
+                        player.getUniqueId(),
+                        new PendingBackstab(target.getUniqueId(), System.currentTimeMillis() + 1_500L));
+            } else {
+                pendingBackstabs.remove(player.getUniqueId());
+            }
+            return;
+        }
+
+        if ("priest".equals(classId)
+                && Set.of("aegis_faith", "pain_suppression", "spirit_shell").contains(abilityId)) {
+            Map<UUID, Map<String, Long>> before = priestWardSnapshots(player, abilityId);
+            getServer().getScheduler().runTaskLater(this, () -> {
+                if (!player.isOnline() || !"priest".equals(classIdOf(player))) {
+                    return;
+                }
+                for (Map.Entry<UUID, Map<String, Long>> entry : before.entrySet()) {
+                    Player affected = Bukkit.getPlayer(entry.getKey());
+                    if (affected != null && affected.isOnline()
+                            && CrosshairSignalRules.hasNewOrExtendedState(
+                                    entry.getValue(), priestWardState(affected), 25L)) {
+                        sendCrosshairSignal(player, CrosshairSignal.PRIEST_BLESSING);
+                        return;
+                    }
+                }
+            }, 1L);
+        }
+    }
+
+    private String readAbilityId(ItemStack item) {
+        if (item == null) {
+            return "";
+        }
+        try {
+            Object tokens = invoke(raskolClasses, "getTokens");
+            Object value = invoke(tokens, "readId", new Class<?>[] {ItemStack.class}, item);
+            return stringValue(value).trim().toLowerCase(java.util.Locale.ROOT);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read the active ability token for crosshair feedback", exception);
+            return "";
+        }
+    }
+
+    private Map<String, Long> hunterMarkState(LivingEntity target) {
+        Map<String, Long> state = new HashMap<>();
+        if (target.isGlowing()) {
+            state.put("glowing", Long.MAX_VALUE);
+        }
+        PotionEffect slowness = target.getPotionEffect(PotionEffectType.SLOWNESS);
+        if (slowness != null) {
+            long expiry = System.currentTimeMillis() + (long) slowness.getDuration() * 50L;
+            state.put("slowness:" + slowness.getAmplifier(), expiry);
+        }
+        return Map.copyOf(state);
+    }
+
+    private Map<UUID, Map<String, Long>> priestWardSnapshots(Player caster, String abilityId) {
+        Set<Player> affected = new HashSet<>();
+        affected.add(caster);
+
+        if ("pain_suppression".equals(abilityId)) {
+            Entity target = caster.getTargetEntity(20);
+            if (target instanceof Player ally) {
+                affected.add(ally);
+            }
+        } else if ("spirit_shell".equals(abilityId)) {
+            for (Entity entity : caster.getNearbyEntities(6.0, 6.0, 6.0)) {
+                if (entity instanceof Player ally) {
+                    affected.add(ally);
+                }
+            }
+        }
+
+        Map<UUID, Map<String, Long>> snapshots = new HashMap<>();
+        for (Player player : affected) {
+            snapshots.put(player.getUniqueId(), priestWardState(player));
+        }
+        return Map.copyOf(snapshots);
+    }
+
+    private Map<String, Long> priestWardState(Player player) {
+        Map<String, Long> state = new HashMap<>();
+        long now = System.currentTimeMillis();
+        for (PotionEffectType type : List.of(PotionEffectType.ABSORPTION, PotionEffectType.RESISTANCE)) {
+            PotionEffect effect = player.getPotionEffect(type);
+            if (effect != null) {
+                String key = "potion:" + type.getKey().getKey() + ":" + effect.getAmplifier();
+                state.put(key, now + (long) effect.getDuration() * 50L);
+            }
+        }
+
+        try {
+            Object service = invoke(raskolClasses, "getResists");
+            Object breakdown = invoke(service, "breakdown", new Class<?>[] {UUID.class}, player.getUniqueId());
+            Object modifiers = invoke(breakdown, "active");
+            if (modifiers instanceof List<?> list) {
+                for (Object modifier : list) {
+                    String source = stringValue(invoke(modifier, "source"))
+                            .toLowerCase(java.util.Locale.ROOT);
+                    if (source.equals("aegis_faith") || source.contains("shield") || source.contains("ward")) {
+                        Object value = invoke(modifier, "expiresAt");
+                        if (value instanceof Number number && number.longValue() > now) {
+                            state.put("resist:" + source, number.longValue());
+                        }
+                    }
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read priest ward state", exception);
+        }
+        return Map.copyOf(state);
     }
 
     private void publishSnapshots() {
@@ -211,16 +380,6 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
             }
         }
 
-        if ("priest".equals(classId)) {
-            Set<String> currentWards = activePriestWardStates(player);
-            Set<String> previousWards = previousPriestWards.put(playerId, Set.copyOf(currentWards));
-            if (previousWards != null && currentWards.stream().anyMatch(id -> !previousWards.contains(id))) {
-                sendCrosshairSignal(player, CrosshairSignal.PRIEST_BLESSING);
-            }
-        } else {
-            previousPriestWards.remove(playerId);
-        }
-
         boolean stealth = player.isSneaking() || player.hasPotionEffect(PotionEffectType.INVISIBILITY);
         Boolean wasStealth = previousStealthStates.put(playerId, stealth);
         if ("rogue".equals(classId) && Boolean.FALSE.equals(wasStealth) && stealth) {
@@ -228,43 +387,6 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         }
     }
 
-    /**
-     * Читает именно активные защитные состояния жреца из публичного API RaskolClasses.
-     * «Эгида веры» хранится в ResistService, а не в Bukkit PotionEffect.
-     */
-    private Set<String> activePriestWardStates(Player player) {
-        Set<String> active = new HashSet<>();
-        if (player.hasPotionEffect(PotionEffectType.LEVITATION)) {
-            active.add("potion:levitation");
-        }
-        if (player.hasPotionEffect(PotionEffectType.ABSORPTION)) {
-            active.add("potion:absorption");
-        }
-        if (player.hasPotionEffect(PotionEffectType.RESISTANCE)) {
-            active.add("potion:resistance");
-        }
-
-        try {
-            Object service = invoke(raskolClasses, "getResists");
-            Object breakdown = invoke(service, "breakdown", new Class<?>[] {UUID.class}, player.getUniqueId());
-            Object modifiers = invoke(breakdown, "active");
-            if (modifiers instanceof List<?> list) {
-                for (Object modifier : list) {
-                    String source = stringValue(invoke(modifier, "source"))
-                            .toLowerCase(java.util.Locale.ROOT);
-                    if (source.equals("aegis_faith")
-                            || source.equals("pain_suppression")
-                            || source.contains("shield")
-                            || source.contains("ward")) {
-                        active.add("resist:" + source);
-                    }
-                }
-            }
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            warnOptionalApi("Could not read active priest ward modifiers", exception);
-        }
-        return active;
-    }
 
     private static boolean isBlessingEffect(String id) {
         String normalized = id.toLowerCase(java.util.Locale.ROOT);
@@ -327,49 +449,35 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         }, 1L);
     }
 
-    private boolean hasOwnedDot(LivingEntity target, UUID ownerId, Set<String> acceptedIds) {
+    private Map<String, DotState> ownedDotStates(LivingEntity target, UUID ownerId) {
         try {
             Object combat = invoke(raskolClasses, "getCombat");
             Object dots = invoke(combat, "dots");
             Object value = invoke(dots, "activeDotsOf", new Class<?>[] {UUID.class}, target.getUniqueId());
             if (!(value instanceof List<?> active)) {
-                return false;
+                return Map.of();
             }
 
+            Map<String, DotState> states = new HashMap<>();
             for (Object instance : active) {
                 Object source = invoke(instance, "ownerUuid");
+                if (!ownerId.equals(source)) {
+                    continue;
+                }
                 Object definition = invoke(instance, "def");
-                String id = stringValue(invoke(definition, "id"));
-                if (ownerId.equals(source)
-                        && (acceptedIds == null || acceptedIds.contains(id.toLowerCase(java.util.Locale.ROOT)))) {
-                    return true;
+                String id = stringValue(invoke(definition, "id"))
+                        .toLowerCase(java.util.Locale.ROOT);
+                int stacks = ((Number) invoke(instance, "stacks")).intValue();
+                long expiresAt = ((Number) invoke(instance, "expiresAt")).longValue();
+                if (!id.isBlank()) {
+                    states.put(id, new DotState(stacks, expiresAt));
                 }
             }
+            return Map.copyOf(states);
         } catch (ReflectiveOperationException | RuntimeException exception) {
             warnOptionalApi("Could not inspect target DoT attribution for crosshair feedback", exception);
+            return Map.of();
         }
-        return false;
-    }
-
-    private boolean hasOwnedCrowdControl(LivingEntity target, UUID ownerId) {
-        try {
-            Object manager = invoke(raskolClasses, "getCC");
-            Object value = invoke(manager, "activeOf", new Class<?>[] {UUID.class}, target.getUniqueId());
-            if (!(value instanceof List<?> active)) {
-                return false;
-            }
-            long now = System.currentTimeMillis();
-            for (Object instance : active) {
-                Object source = invoke(instance, "sourceUuid");
-                long expiresAt = ((Number) invoke(instance, "expiresAt")).longValue();
-                if (ownerId.equals(source) && expiresAt > now) {
-                    return true;
-                }
-            }
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            warnOptionalApi("Could not inspect target crowd-control attribution for crosshair feedback", exception);
-        }
-        return false;
     }
 
     private String classIdOf(Player player) {
@@ -397,7 +505,7 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         return null;
     }
 
-    private static boolean isBehind(LivingEntity target, Player attacker) {
+    private boolean isBehind(LivingEntity target, Player attacker) {
         Vector facing = target.getLocation().getDirection().setY(0.0);
         Vector toAttacker = attacker.getLocation().toVector()
                 .subtract(target.getLocation().toVector())
@@ -407,7 +515,28 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         }
         double dot = facing.normalize().dot(toAttacker.normalize());
         double angle = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, dot))));
-        return angle >= 135.0;
+        return CrosshairSignalRules.isWithinBackstabArc(angle, configuredBackAngle());
+    }
+
+    private double configuredBackAngle() {
+        try {
+            Object config = invoke(raskolClasses, "getConfig");
+            Object value = invoke(
+                    config,
+                    "getDouble",
+                    new Class<?>[] {String.class, double.class},
+                    "avoidance.back-angle",
+                    135.0);
+            if (value instanceof Number number
+                    && Double.isFinite(number.doubleValue())
+                    && number.doubleValue() >= 0.0
+                    && number.doubleValue() <= 180.0) {
+                return number.doubleValue();
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read RaskolClasses backstab angle", exception);
+        }
+        return 135.0;
     }
 
     private int resourceMax(UUID playerId) {
