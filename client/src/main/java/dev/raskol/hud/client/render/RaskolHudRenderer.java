@@ -12,14 +12,24 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class RaskolHudRenderer {
 
-    private static final int PANEL = 0xE8100B0F;
-    private static final int BORDER = 0x99783544;
-    private static final int TEXT = 0xFFEEE4E1;
-    private static final int SECONDARY = 0xFFC0B0B0;
-    private static final int MUTED = 0xFF8D7D80;
-    private static final int HEALTH = 0xFF783544;
-    private static final int RESOURCE = 0xFFB47B86;
-    private static final int TRACK = 0xFF21171D;
+    private static final int SHADOW = 0x78000000;
+    private static final int FRAME = 0xDD100D12;
+    private static final int INNER = 0xC419151A;
+    private static final int EDGE = 0xFF76513F;
+    private static final int EDGE_DARK = 0xFF38262B;
+    private static final int TEXT = 0xFFF0E8DF;
+    private static final int SECONDARY = 0xFFC0B1A8;
+    private static final int MUTED = 0xFF8F817D;
+    private static final int HEALTH = 0xFF873747;
+    private static final int HEALTH_HIGHLIGHT = 0xFFB35C68;
+    private static final int RESOURCE = 0xFFB58A62;
+    private static final int TRACK = 0xFF21191E;
+    private static final int CONNECTION = 0xFFB58A62;
+
+    private static final int PANEL_X = 12;
+    private static final int PANEL_Y = 12;
+    private static final int PANEL_WIDTH = 252;
+    private static final int PANEL_HEIGHT = 78;
 
     private static final NumberFormat NUMBER_FORMAT =
             NumberFormat.getIntegerInstance(Locale.forLanguageTag("ru-RU"));
@@ -38,81 +48,124 @@ public final class RaskolHudRenderer {
         }
 
         Font font = client.font;
-        int screenWidth = graphics.guiWidth();
-        int screenHeight = graphics.guiHeight();
-
-        drawIdentity(graphics, font, state, 16, 16);
-        drawConnection(graphics, font, screenWidth - 178, 16);
-        drawVitals(graphics, font, state, 16, screenHeight - 88);
+        drawCharacterFrame(graphics, font, state);
+        drawConnection(graphics, font, graphics.guiWidth());
     }
 
-    private static void drawIdentity(
+    private static void drawCharacterFrame(
             GuiGraphicsExtractor graphics,
             Font font,
-            RaskolHudSnapshot state,
-            int x,
-            int y) {
+            RaskolHudSnapshot state) {
 
-        drawPanel(graphics, x, y, 236, 60);
-        String symbol = state.resourceSymbol().isBlank() ? "•" : state.resourceSymbol();
+        int x = PANEL_X;
+        int y = PANEL_Y;
+        int right = x + PANEL_WIDTH;
 
-        graphics.text(font, symbol, x + 12, y + 11, RESOURCE);
-        graphics.text(font, displayOr(state.className(), "Без класса"), x + 38, y + 8, TEXT);
+        drawFrame(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT);
+
+        drawEmblem(graphics, font, state, x + 10, y + 19);
+
+        graphics.text(font, displayOr(state.className(), "Без класса"), x + 48, y + 8, TEXT);
+        drawRightAligned(
+                graphics,
+                font,
+                "УР. " + NUMBER_FORMAT.format(state.characterLevel()),
+                right - 10,
+                y + 9,
+                RESOURCE);
+
         graphics.text(
                 font,
                 displayOr(state.specializationName(), "Специализация не выбрана"),
-                x + 38,
-                y + 27,
+                x + 48,
+                y + 22,
                 SECONDARY);
-        graphics.text(font, "УР. " + NUMBER_FORMAT.format(state.characterLevel()), x + 38, y + 43, MUTED);
-    }
-
-    private static void drawConnection(
-            GuiGraphicsExtractor graphics,
-            Font font,
-            int x,
-            int y) {
-
-        drawPanel(graphics, x, y, 162, 30);
-        graphics.fill(x + 10, y + 11, x + 16, y + 17, RESOURCE);
-        graphics.text(font, "RASKOL · СВЯЗЬ АКТИВНА", x + 23, y + 10, TEXT);
-    }
-
-    private static void drawVitals(
-            GuiGraphicsExtractor graphics,
-            Font font,
-            RaskolHudSnapshot state,
-            int x,
-            int y) {
-
-        drawPanel(graphics, x, y, 274, 72);
 
         String healthValue = NUMBER_FORMAT.format(state.health())
                 + " / "
                 + NUMBER_FORMAT.format(state.healthMax());
-        graphics.text(font, "ЗДОРОВЬЕ", x + 10, y + 7, SECONDARY);
-        drawRightAligned(graphics, font, healthValue, x + 264, y + 7, TEXT);
-        drawBar(graphics, x + 10, y + 22, 254, 7, state.health(), state.healthMax(), HEALTH);
+        graphics.text(font, "ЗДОРОВЬЕ", x + 48, y + 39, MUTED);
+        drawRightAligned(graphics, font, healthValue, right - 10, y + 39, TEXT);
+        drawBar(
+                graphics,
+                x + 48,
+                y + 52,
+                PANEL_WIDTH - 58,
+                6,
+                state.health(),
+                state.healthMax(),
+                HEALTH,
+                HEALTH_HIGHLIGHT);
 
-        String resourceLabel = (state.resourceSymbol().isBlank() ? "" : state.resourceSymbol() + " ")
-                + displayOr(state.resourceName(), "РЕСУРС");
+        String resourceLabel = displayOr(state.resourceName(), "РЕСУРС");
         String resourceValue = state.resourceMax() > 0
                 ? NUMBER_FORMAT.format(state.resource()) + " / " + NUMBER_FORMAT.format(state.resourceMax())
                 : NUMBER_FORMAT.format(state.resource());
 
-        graphics.text(font, resourceLabel, x + 10, y + 39, SECONDARY);
-        drawRightAligned(graphics, font, resourceValue, x + 264, y + 39, TEXT);
+        graphics.text(font, resourceLabel, x + 48, y + 63, MUTED);
+        drawRightAligned(graphics, font, resourceValue, right - 10, y + 63, TEXT);
+
         if (state.resourceMax() > 0) {
-            drawBar(graphics, x + 10, y + 54, 254, 7, state.resource(), state.resourceMax(), RESOURCE);
+            drawBar(
+                    graphics,
+                    x + 48,
+                    y + 72,
+                    PANEL_WIDTH - 58,
+                    3,
+                    state.resource(),
+                    state.resourceMax(),
+                    RESOURCE,
+                    RESOURCE);
         }
     }
 
-    private static void drawPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
-        graphics.fill(x, y, x + width, y + height, PANEL);
-        graphics.fill(x, y, x + width, y + 1, BORDER);
-        graphics.fill(x, y, x + 1, y + height, BORDER);
-        graphics.fill(x + width - 1, y, x + width, y + height, BORDER);
-        graphics.fill(x, y + height - 1, x + width, y + height, BORDER);
+    private static void drawFrame(
+            GuiGraphicsExtractor graphics,
+            int x,
+            int y,
+            int width,
+            int height) {
+
+        graphics.fill(x + 2, y + 3, x + width + 2, y + height + 3, SHADOW);
+        graphics.fill(x, y, x + width, y + height, FRAME);
+        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, INNER);
+
+        graphics.fill(x + 7, y, x + width - 7, y + 1, EDGE);
+        graphics.fill(x, y + 7, x + 1, y + height - 7, EDGE_DARK);
+        graphics.fill(x + width - 1, y + 7, x + width, y + height - 7, EDGE_DARK);
+        graphics.fill(x + 7, y + height - 1, x + width - 7, y + height, EDGE_DARK);
+
+        graphics.fill(x + 8, y + 3, x + width - 8, y + 4, 0x553F2C2C);
+    }
+
+    private static void drawEmblem(
+            GuiGraphicsExtractor graphics,
+            Font font,
+            RaskolHudSnapshot state,
+            int x,
+            int y) {
+
+        graphics.fill(x + 1, y + 2, x + 29, y + 30, SHADOW);
+        graphics.fill(x, y, x + 28, y + 28, EDGE_DARK);
+        graphics.fill(x + 1, y + 1, x + 27, y + 27, 0xFF151116);
+        graphics.fill(x + 3, y + 3, x + 25, y + 4, EDGE);
+        graphics.fill(x + 3, y + 24, x + 25, y + 25, EDGE_DARK);
+
+        String symbol = displayOr(state.resourceSymbol(), "✦");
+        int symbolX = x + (28 - font.width(symbol)) / 2;
+        int symbolY = y + (28 - 9) / 2;
+        graphics.text(font, symbol, symbolX, symbolY, RESOURCE);
+    }
+
+    private static void drawConnection(GuiGraphicsExtractor graphics, Font font, int screenWidth) {
+        String label = "РАСКОЛ";
+        int textWidth = font.width(label);
+        int x = screenWidth - textWidth - 22;
+        int y = 17;
+
+        graphics.fill(x, y + 4, x + 5, y + 9, CONNECTION);
+        graphics.fill(x + 1, y + 5, x + 4, y + 8, 0xFFFFD9A0);
+        graphics.text(font, label, x + 10, y + 1, SECONDARY);
     }
 
     private static void drawBar(
@@ -123,17 +176,30 @@ public final class RaskolHudRenderer {
             int height,
             int current,
             int maximum,
-            int color) {
+            int fillColor,
+            int highlightColor) {
 
         graphics.fill(x, y, x + width, y + height, TRACK);
+        graphics.fill(x, y, x + width, y + 1, 0xFF34252A);
+
         if (maximum <= 0 || current <= 0) {
             return;
         }
 
         double fraction = Math.max(0.0, Math.min(1.0, (double) current / maximum));
         int filledWidth = (int) Math.round(width * fraction);
-        if (filledWidth > 0) {
-            graphics.fill(x, y, x + filledWidth, y + height, color);
+        if (filledWidth <= 0) {
+            return;
+        }
+
+        graphics.fill(x, y + 1, x + filledWidth, y + height, fillColor);
+        graphics.fill(x, y + 1, x + filledWidth, y + 2, highlightColor);
+
+        for (int segment = 1; segment < 5; segment++) {
+            int markerX = x + width * segment / 5;
+            if (markerX < x + filledWidth) {
+                graphics.fill(markerX, y + 1, markerX + 1, y + height, 0x557A6260);
+            }
         }
     }
 
