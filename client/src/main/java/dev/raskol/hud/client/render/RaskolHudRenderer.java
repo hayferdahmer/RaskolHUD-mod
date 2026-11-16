@@ -61,6 +61,7 @@ public final class RaskolHudRenderer {
         drawIdentity(graphics, font, state);
         drawConnection(graphics, font, graphics.guiWidth());
         drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight());
+        RaskolScoreboardRenderer.render(graphics, font, client);
     }
 
     private static void drawIdentity(
