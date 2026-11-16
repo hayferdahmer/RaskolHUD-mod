@@ -31,8 +31,10 @@ public final class RaskolHudClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> HudStateStore.clear());
 
-        // Пока серверный снимок актуален, убираем дублирующие ванильные слои локально.
+        // Пока серверный снимок актуален, заменяем дублирующие ванильные слои.
         hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.HEALTH_BAR);
+        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.ARMOR_BAR);
+        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.FOOD_BAR);
         hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.SCOREBOARD);
         hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.OVERLAY_MESSAGE);
 
