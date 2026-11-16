@@ -44,7 +44,7 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
     private final Set<UUID> hudClients = new HashSet<>();
     private final Map<UUID, Set<String>> previousPlayerEffects = new HashMap<>();
     private final Map<UUID, Boolean> previousStealthStates = new HashMap<>();
-    private final Map<UUID, Integer> previousHealth = new HashMap<>();
+    private final Map<UUID, Set<String>> previousPriestWards = new HashMap<>();
     private Object raskolClasses;
     private boolean warnedOptionalApi;
 
@@ -76,7 +76,7 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         hudClients.clear();
         previousPlayerEffects.clear();
         previousStealthStates.clear();
-        previousHealth.clear();
+        previousPriestWards.clear();
         raskolClasses = null;
     }
 
@@ -98,7 +98,7 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         hudClients.remove(playerId);
         previousPlayerEffects.remove(playerId);
         previousStealthStates.remove(playerId);
-        previousHealth.remove(playerId);
+        previousPriestWards.remove(playerId);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -211,9 +211,14 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
             }
         }
 
-        Integer oldHealth = previousHealth.put(playerId, health);
-        if ("priest".equals(classId) && oldHealth != null && oldHealth > 0 && health > oldHealth) {
-            sendCrosshairSignal(player, CrosshairSignal.PRIEST_BLESSING);
+        if ("priest".equals(classId)) {
+            Set<String> currentWards = activePriestWardStates(player);
+            Set<String> previousWards = previousPriestWards.put(playerId, Set.copyOf(currentWards));
+            if (previousWards != null && currentWards.stream().anyMatch(id -> !previousWards.contains(id))) {
+                sendCrosshairSignal(player, CrosshairSignal.PRIEST_BLESSING);
+            }
+        } else {
+            previousPriestWards.remove(playerId);
         }
 
         boolean stealth = player.isSneaking() || player.hasPotionEffect(PotionEffectType.INVISIBILITY);
@@ -221,6 +226,44 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         if ("rogue".equals(classId) && Boolean.FALSE.equals(wasStealth) && stealth) {
             sendCrosshairSignal(player, CrosshairSignal.ROGUE_STEALTH);
         }
+    }
+
+    /**
+     * Читает именно активные защитные состояния жреца из публичного API RaskolClasses.
+     * «Эгида веры» хранится в ResistService, а не в Bukkit PotionEffect.
+     */
+    private Set<String> activePriestWardStates(Player player) {
+        Set<String> active = new HashSet<>();
+        if (player.hasPotionEffect(PotionEffectType.LEVITATION)) {
+            active.add("potion:levitation");
+        }
+        if (player.hasPotionEffect(PotionEffectType.ABSORPTION)) {
+            active.add("potion:absorption");
+        }
+        if (player.hasPotionEffect(PotionEffectType.RESISTANCE)) {
+            active.add("potion:resistance");
+        }
+
+        try {
+            Object service = invoke(raskolClasses, "getResists");
+            Object breakdown = invoke(service, "breakdown", new Class<?>[] {UUID.class}, player.getUniqueId());
+            Object modifiers = invoke(breakdown, "active");
+            if (modifiers instanceof List<?> list) {
+                for (Object modifier : list) {
+                    String source = stringValue(invoke(modifier, "source"))
+                            .toLowerCase(java.util.Locale.ROOT);
+                    if (source.equals("aegis_faith")
+                            || source.equals("pain_suppression")
+                            || source.contains("shield")
+                            || source.contains("ward")) {
+                        active.add("resist:" + source);
+                    }
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read active priest ward modifiers", exception);
+        }
+        return active;
     }
 
     private static boolean isBlessingEffect(String id) {
