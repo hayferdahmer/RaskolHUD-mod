@@ -1,20 +1,73 @@
 # RaskolHUD
 
-Client-side HUD mod for the RASKOL Minecraft RPG server.
+Клиентский HUD-мод для сервера «РАСКОЛ | ДВЕ КОРОНЫ».
 
-## Repository roles
+## Границы репозиториев
 
-- This repository is the sole development home for the RaskolHUD client mod, shared HUD protocol, and optional Paper bridge.
-- [RaskolClasses](https://github.com/hayferdahmer/RaskolClasses) is the authoritative source for current server-side classes, specializations, progression, HP, resources, and gameplay rules. It is treated as an upstream integration dependency; RaskolHUD changes do not belong in that repository.
+- Этот репозиторий (RaskolHUD-mod) — единственное место разработки клиентского мода, общего протокола и Paper-моста.
+- [RaskolClasses](https://github.com/hayferdahmer/RaskolClasses) — upstream-источник истины для классов, специализаций, уровня персонажа, HP и классового ресурса. Здесь читаются актуальные контракты и правила. Код HUD сюда не переносится.
 
-## Initial target
+## Платформа
 
 - Minecraft 26.2
 - Java 25
 - Fabric Loader 0.19.3
 - Fabric API 0.161.0+26.2
-- Paper 26.2 for the optional server-side bridge
+- Paper 26.2 для серверного моста
+- Fabric Loom 1.17.21
+- Gradle 9.5.1
 
-The HUD is display-only. The server remains authoritative for all gameplay calculations and mutations.
+## Структура
 
-Development is in progress. No release artifact is published yet.
+- protocol/ — общий бинарный протокол, DTO серверного состояния и тесты.
+- client/ — клиентский Fabric-мод, который рисует HUD через Fabric HUD API.
+- bridge/ — Paper-плагин, который читает значения PlaceholderAPI игрока и отправляет снимок только клиентам RaskolHUD.
+
+## Первая версия HUD
+
+В игровом интерфейсе показываются:
+- класс и специализация;
+- уровень персонажа;
+- здоровье: текущее значение и максимум;
+- классовый ресурс и, когда сервер публикует достоверный максимум, шкала ресурса;
+- наличие свежей связи с серверным мостом.
+
+Клиент не пересчитывает характеристики, класс, прогрессию, боевые эффекты или ресурсы. Сервер остаётся единственным источником истины. Если снимок не пришёл или устарел более чем на 5 секунд, HUD скрывается.
+
+## Совместимость с текущим RaskolClasses
+
+Мост первой версии использует существующие плейсхолдеры:
+- %raskolclasses_class%
+- %raskolclasses_level%
+- %raskolclasses_hp%
+- %raskolclasses_hp_max%
+- %raskolclasses_resource%
+- %raskolclasses_spec%
+
+Названия ресурсов и символы берутся из проверенной текущей модели классов RaskolClasses. Пока публичный снимок не предоставляет фактический максимум классового ресурса, мост отправляет его как неизвестный. Поэтому клиент показывает текущее значение без выдуманной шкалы. Для полноценной шкалы понадобится отдельное согласованное расширение публичного PlaceholderAPI/API-контракта в RaskolClasses; оно не включается в этот репозиторий и не меняет исходный плагин автоматически.
+
+## Протокол связи
+
+- Клиент отправляет однобайтовый handshake версии протокола по raskolhud:hello.
+- Мост отвечает серверным снимком по raskolhud:state.
+- Снимки отправляются раз в 10 серверных тиков только игрокам, прошедшим handshake.
+- Пакет содержит magic signature, версию, timestamp, ограниченные UTF-8 строки и числовые поля.
+- Клиент проверяет структуру и версию пакета и удаляет состояние при отключении.
+
+## Сборка
+
+Из корня репозитория при наличии JDK 25:
+
+~~~bash
+gradle :protocol:test :client:build :bridge:build
+~~~
+
+Артефакты:
+- client/build/libs/raskolhud-client-0.1.0.jar
+- bridge/build/libs/raskolhud-bridge-0.1.0.jar
+
+Клиентский JAR устанавливается игроку с Fabric API. Серверный JAR — на Paper вместе с RaskolClasses и PlaceholderAPI.
+
+## Статус
+
+Основа версии 0.1.0 находится в разработке. До распространения JAR обязательны успешная CI-сборка на Java 25, запуск клиента Minecraft 26.2 и проверка полного handshake на тестовом Paper 26.2.
