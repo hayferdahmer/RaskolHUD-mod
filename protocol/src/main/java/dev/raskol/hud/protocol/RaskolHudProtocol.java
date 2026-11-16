@@ -7,25 +7,24 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Versioned, bounded binary protocol shared by the Paper bridge and Fabric client.
+ * Ограниченный версионированный бинарный протокол между Paper-мостом и Fabric-клиентом.
  *
- * Packet layout:
- *   int magic, byte version, long server timestamp,
- *   five VarInt-length UTF-8 strings,
- *   five signed 32-bit integers.
- *
- * The client-to-server hello is exactly one byte: the protocol version.
+ * Пакет состояния: сигнатура, версия, время снимка, данные персонажа и два
+ * ограниченных списка боевых состояний. Hello-клиента содержит только версию.
  */
 public final class RaskolHudProtocol {
 
     public static final String HELLO_CHANNEL = "raskolhud:hello";
     public static final String STATE_CHANNEL = "raskolhud:state";
-    public static final int PROTOCOL_VERSION = 1;
+    public static final int PROTOCOL_VERSION = 2;
+    public static final int MAX_EFFECTS = 5;
 
-    private static final int MAGIC = 0x52534844; // "RSHD"
-    private static final int MAX_PACKET_BYTES = 1024;
+    private static final int MAGIC = 0x52534844;
+    private static final int MAX_PACKET_BYTES = 4096;
     private static final int MAX_STRING_BYTES = 128;
 
     private RaskolHudProtocol() {}
@@ -45,7 +44,7 @@ public final class RaskolHudProtocol {
             throw new IllegalArgumentException("snapshot must not be null");
         }
 
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream(160);
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream(256);
         try (DataOutputStream out = new DataOutputStream(bytes)) {
             out.writeInt(MAGIC);
             out.writeByte(PROTOCOL_VERSION);
@@ -62,6 +61,9 @@ public final class RaskolHudProtocol {
             out.writeInt(snapshot.healthMax());
             out.writeInt(snapshot.resource());
             out.writeInt(snapshot.resourceMax());
+
+            writeEffects(out, snapshot.activeEffects());
+            writeEffects(out, snapshot.damageOverTime());
         }
 
         byte[] packet = bytes.toByteArray();
@@ -99,6 +101,9 @@ public final class RaskolHudProtocol {
             int resource = in.readInt();
             int resourceMax = in.readInt();
 
+            List<RaskolHudEffect> activeEffects = readEffects(in);
+            List<RaskolHudEffect> damageOverTime = readEffects(in);
+
             if (in.available() != 0) {
                 throw new IOException("Unexpected trailing bytes in RaskolHUD packet");
             }
@@ -114,10 +119,53 @@ public final class RaskolHudProtocol {
                     health,
                     healthMax,
                     resource,
-                    resourceMax);
+                    resourceMax,
+                    activeEffects,
+                    damageOverTime);
         } catch (EOFException exception) {
             throw new IOException("Truncated RaskolHUD packet", exception);
         }
+    }
+
+    private static void writeEffects(DataOutputStream out, List<RaskolHudEffect> effects) throws IOException {
+        int count = effects == null ? 0 : Math.min(MAX_EFFECTS, effects.size());
+        out.writeByte(count);
+        for (int i = 0; i < count; i++) {
+            RaskolHudEffect effect = effects.get(i);
+            writeString(out, effect.id());
+            writeString(out, effect.displayName());
+            writeString(out, effect.symbol());
+            out.writeInt(effect.remainingSeconds());
+            out.writeInt(effect.durationSeconds());
+            out.writeInt(effect.stacks());
+            out.writeBoolean(effect.harmful());
+        }
+    }
+
+    private static List<RaskolHudEffect> readEffects(DataInputStream in) throws IOException {
+        int count = in.readUnsignedByte();
+        if (count > MAX_EFFECTS) {
+            throw new IOException("Too many RaskolHUD combat effects: " + count);
+        }
+
+        List<RaskolHudEffect> effects = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            String id = readString(in);
+            String displayName = readString(in);
+            String symbol = readString(in);
+            int remainingSeconds = in.readInt();
+            int durationSeconds = in.readInt();
+            int stacks = in.readInt();
+            boolean harmful = in.readBoolean();
+
+            if (remainingSeconds < -1 || durationSeconds < 0 || stacks < 1 || stacks > 99) {
+                throw new IOException("Invalid RaskolHUD combat effect values");
+            }
+
+            effects.add(new RaskolHudEffect(
+                    id, displayName, symbol, remainingSeconds, durationSeconds, stacks, harmful));
+        }
+        return List.copyOf(effects);
     }
 
     private static void writeString(DataOutputStream out, String value) throws IOException {
