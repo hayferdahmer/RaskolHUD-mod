@@ -111,7 +111,7 @@ public final class RaskolHudRenderer {
         graphics.fill(x, y, x + 28, y + 28, 0xFF171319);
 
         if (player instanceof AbstractClientPlayer clientPlayer) {
-            var texture = clientPlayer.getSkin().texture();
+            var texture = clientPlayer.getSkin().body().texturePath();
             // Лицо и верхний слой берутся из актуальной текстуры скина игрока.
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture,
                     x, y, 8.0F, 8.0F, 28, 28, 8, 8, 64, 64);
