@@ -11,7 +11,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
  */
 public final class RaskolCrosshairRenderer {
 
-    private static final int SHADOW = 0xA0000000;
+    private static final int SHADOW = 0xC0000000;
+    private static final int HIGHLIGHT = 0x45FFFFFF;
 
     private RaskolCrosshairRenderer() {}
 
@@ -113,22 +114,25 @@ public final class RaskolCrosshairRenderer {
             GuiGraphicsExtractor g, int cx, int cy, int idle, int active,
             CrosshairSignal signal, float strength) {
         boolean bloom = signal == CrosshairSignal.MAGE_FROST;
-        int extension = bloom ? 1 : 0;
         int color = bloom ? active : idle;
         drawLine(g,cx,cy,new int[][] {
-            {0,-7-extension},{0,-6},{0,-5},{0,5},{0,6},{0,7+extension},
-            {-7-extension,0},{-6,0},{-5,0},{5,0},{6,0},{7+extension,0},
-            {-6-extension,-6-extension},{6+extension,-6-extension},
-            {-6-extension,6+extension},{6+extension,6+extension},
+            {0,-7},{0,-6},{0,-5},{0,5},{0,6},{0,7},
+            {-7,0},{-6,0},{-5,0},{5,0},{6,0},{7,0},
+            {-6,-6},{-5,-5},{6,-6},{5,-5},
+            {-6,6},{-5,5},{6,6},{5,5},
             {-4,-4},{4,-4},{-4,4},{4,4}
         },color);
         pixel(g,cx,cy,0,0,color);
         if (bloom && strength > 0.3F) {
             int flash=pulseColor(signal,strength);
-            pixel(g,cx,cy,0,-8-extension,flash);
-            pixel(g,cx,cy,0,8+extension,flash);
-            pixel(g,cx,cy,-8-extension,0,flash);
-            pixel(g,cx,cy,8+extension,0,flash);
+            pixel(g,cx,cy,0,-8,flash);
+            pixel(g,cx,cy,0,8,flash);
+            pixel(g,cx,cy,-8,0,flash);
+            pixel(g,cx,cy,8,0,flash);
+            pixel(g,cx,cy,-7,-7,flash);
+            pixel(g,cx,cy,7,-7,flash);
+            pixel(g,cx,cy,-7,7,flash);
+            pixel(g,cx,cy,7,7,flash);
         }
     }
 
@@ -181,11 +185,13 @@ public final class RaskolCrosshairRenderer {
     }
 
     private static void pixel(GuiGraphicsExtractor g,int cx,int cy,int dx,int dy,int color) {
+        g.fill(cx+dx-1,cy+dy-1,cx+dx,cy+dy,HIGHLIGHT);
         g.fill(cx+dx+1,cy+dy+1,cx+dx+2,cy+dy+2,SHADOW);
         g.fill(cx+dx,cy+dy,cx+dx+1,cy+dy+1,color);
     }
 
     private static void block(GuiGraphicsExtractor g,int cx,int cy,int dx,int dy,int size,int color) {
+        g.fill(cx+dx-1,cy+dy-1,cx+dx,cy+dy,HIGHLIGHT);
         g.fill(cx+dx+1,cy+dy+1,cx+dx+size+1,cy+dy+size+1,SHADOW);
         g.fill(cx+dx,cy+dy,cx+dx+size,cy+dy+size,color);
     }
