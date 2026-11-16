@@ -58,13 +58,22 @@ final class RaskolHudProtocolTest {
     }
 
     @Test
-    void constructorClampsValuesToServerMaximums() {
+    void constructorClampsValuesToKnownServerMaximums() {
         RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
                 1L, "rogue", "Разбойник", "Скрытность", "Энергия", "☠", -2, 999, 100, 999, 120);
 
         assertEquals(0, snapshot.characterLevel());
         assertEquals(100, snapshot.health());
         assertEquals(120, snapshot.resource());
+    }
+
+    @Test
+    void constructorPreservesResourceWhenServerMaximumIsUnknown() {
+        RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
+                1L, "warrior", "Воин", "", "Ярость", "⚔", 20, 100, 100, 68, 0);
+
+        assertEquals(68, snapshot.resource());
+        assertEquals(0, snapshot.resourceMax());
     }
 
     @Test
