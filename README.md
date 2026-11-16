@@ -11,7 +11,7 @@
 
 - Minecraft 26.2
 - Java 25
-- Fabric Loader 0.19.3
+- Fabric Loader 0.19.5
 - Fabric API 0.161.0+26.2
 - Paper 26.2 для серверного моста
 - Fabric Loom 1.17.21
