@@ -12,7 +12,7 @@ public record HelloPayload(int protocolVersion) implements CustomPacketPayload {
 
     public static final StreamCodec<RegistryFriendlyByteBuf, HelloPayload> CODEC =
             StreamCodec.ofMember(
-                    (buf, payload) -> buf.writeByte(payload.protocolVersion()),
+                    (payload, buf) -> buf.writeByte(payload.protocolVersion()),
                     buf -> new HelloPayload(buf.readUnsignedByte()));
 
     @Override
