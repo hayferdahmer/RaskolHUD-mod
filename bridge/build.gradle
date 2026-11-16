@@ -1,0 +1,44 @@
+plugins {
+    id "java"
+}
+
+base {
+    archivesName = "raskolhud-bridge"
+}
+
+dependencies {
+    implementation project(":protocol")
+    compileOnly "io.papermc.paper:paper-api:${paper_api_version}"
+    compileOnly "me.clip:placeholderapi:${placeholderapi_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    filteringCharset = "UTF-8"
+
+    filesMatching("plugin.yml") {
+        expand(version: project.version)
+    }
+}
+
+tasks.named("jar") {
+    dependsOn(":protocol:jar")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath
+                .findAll { it.name.startsWith("protocol-") }
+                .collect { zipTree(it) }
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+    options.encoding = "UTF-8"
+}
