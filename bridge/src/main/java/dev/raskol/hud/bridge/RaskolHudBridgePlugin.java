@@ -142,14 +142,12 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
                                     dotsBefore, ownedDotStates(target, ownerId), Set.of("chilled"))
                             ? CrosshairSignal.MAGE_FROST : CrosshairSignal.NONE);
             case "rogue" -> {
-                PendingBackstab pending = pendingBackstabs.get(ownerId);
-                if (pending != null && pending.expiresAtMillis() <= System.currentTimeMillis()) {
-                    pendingBackstabs.remove(ownerId);
-                } else if (pending != null && pending.targetUuid().equals(target.getUniqueId())) {
-                    pendingBackstabs.remove(ownerId);
-                    if (isBehind(target, attacker)) {
-                        sendCrosshairSignal(attacker, CrosshairSignal.ROGUE_BACKSTAB);
-                    }
+                PendingBackstab pending = pendingBackstabs.remove(ownerId);
+                if (pending != null
+                        && pending.expiresAtMillis() > System.currentTimeMillis()
+                        && pending.targetUuid().equals(target.getUniqueId())
+                        && isBehind(target, attacker)) {
+                    sendCrosshairSignal(attacker, CrosshairSignal.ROGUE_BACKSTAB);
                 }
             }
             default -> {
