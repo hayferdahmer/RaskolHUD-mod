@@ -4,6 +4,7 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 import dev.raskol.hud.client.network.HudStateStore;
+import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -59,6 +60,7 @@ public final class RaskolHudRenderer {
 
         Font font = client.font;
         drawIdentity(graphics, font, state);
+        drawCombatStatuses(graphics, font, state);
         drawConnection(graphics, font, graphics.guiWidth());
         drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight());
         RaskolScoreboardRenderer.render(graphics, font, client);
@@ -91,6 +93,92 @@ public final class RaskolHudRenderer {
                 x + 48,
                 y + 23,
                 SECONDARY);
+    }
+
+    private static void drawCombatStatuses(
+            GuiGraphicsExtractor graphics,
+            Font font,
+            RaskolHudSnapshot state) {
+
+        if (state.activeEffects().isEmpty() && state.damageOverTime().isEmpty()) {
+            return;
+        }
+
+        int x = IDENTITY_X;
+        int y = IDENTITY_Y + IDENTITY_HEIGHT + 8;
+        int width = IDENTITY_WIDTH;
+        int height = 38;
+        drawFrame(graphics, x, y, width, height);
+
+        graphics.text(font, "УСИЛЕНИЯ", x + 8, y + 5, MUTED);
+        graphics.text(
+                font,
+                statusSummary(font, state.activeEffects(), width - 92),
+                x + 82,
+                y + 5,
+                RESOURCE);
+
+        graphics.fill(x + 8, y + 18, x + width - 8, y + 19, DIVIDER);
+
+        graphics.text(font, "ОТРИЦАТЕЛЬНЫЕ", x + 8, y + 24, MUTED);
+        graphics.text(
+                font,
+                statusSummary(font, state.damageOverTime(), width - 92),
+                x + 106,
+                y + 24,
+                HEALTH_HIGHLIGHT);
+    }
+
+    private static String statusSummary(Font font, java.util.List<RaskolHudEffect> effects, int availableWidth) {
+        if (effects.isEmpty()) {
+            return "—";
+        }
+
+        StringBuilder summary = new StringBuilder();
+        int included = 0;
+        for (RaskolHudEffect effect : effects) {
+            String item = effectSummary(effect);
+            String candidate = summary.isEmpty() ? item : summary + " · " + item;
+            if (font.width(candidate) > availableWidth) {
+                break;
+            }
+            summary.setLength(0);
+            summary.append(candidate);
+            included++;
+        }
+
+        int omitted = effects.size() - included;
+        if (omitted > 0) {
+            String suffix = " +" + omitted;
+            while (!summary.isEmpty() && font.width(summary + suffix) > availableWidth) {
+                int separator = summary.lastIndexOf(" · ");
+                if (separator >= 0) {
+                    summary.setLength(separator);
+                    omitted = effects.size() - summary.toString().split(" · ").length;
+                    suffix = " +" + omitted;
+                } else {
+                    summary.setLength(0);
+                }
+            }
+            summary.append(suffix);
+        }
+
+        return summary.isEmpty() ? effects.get(0).symbol() : summary.toString();
+    }
+
+    private static String effectSummary(RaskolHudEffect effect) {
+        StringBuilder text = new StringBuilder();
+        if (!effect.symbol().isBlank()) {
+            text.append(effect.symbol()).append(' ');
+        }
+        text.append(effect.displayName());
+        if (effect.stacks() > 1) {
+            text.append(" ×").append(effect.stacks());
+        }
+        if (effect.remainingSeconds() >= 0) {
+            text.append(' ').append(effect.remainingSeconds()).append('с');
+        }
+        return text.toString();
     }
 
     private static void drawBottomStatus(
