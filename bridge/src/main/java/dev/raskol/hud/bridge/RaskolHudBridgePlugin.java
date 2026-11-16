@@ -4,25 +4,37 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 import org.bukkit.inventory.ItemStack;
 
 import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudCooldown;
+import dev.raskol.hud.protocol.RaskolHudProtocol.CrosshairSignal;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -30,6 +42,9 @@ import me.clip.placeholderapi.PlaceholderAPI;
 public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMessageListener, Listener {
 
     private final Set<UUID> hudClients = new HashSet<>();
+    private final Map<UUID, Set<String>> previousPlayerEffects = new HashMap<>();
+    private final Map<UUID, Boolean> previousStealthStates = new HashMap<>();
+    private final Map<UUID, Integer> previousHealth = new HashMap<>();
     private Object raskolClasses;
     private boolean warnedOptionalApi;
 
@@ -44,7 +59,9 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         Messenger messenger = getServer().getMessenger();
         messenger.registerIncomingPluginChannel(this, RaskolHudProtocol.HELLO_CHANNEL, this);
         messenger.registerOutgoingPluginChannel(this, RaskolHudProtocol.STATE_CHANNEL);
+        messenger.registerOutgoingPluginChannel(this, RaskolHudProtocol.SIGNAL_CHANNEL);
         getServer().getPluginManager().registerEvents(this, this);
+        registerCustomHealSignal();
 
         getServer().getScheduler().runTaskTimer(this, this::publishSnapshots, 10L, 10L);
         getLogger().info("RaskolHUD bridge enabled (protocol v" + RaskolHudProtocol.PROTOCOL_VERSION + ").");
@@ -55,7 +72,11 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         Messenger messenger = getServer().getMessenger();
         messenger.unregisterIncomingPluginChannel(this, RaskolHudProtocol.HELLO_CHANNEL, this);
         messenger.unregisterOutgoingPluginChannel(this, RaskolHudProtocol.STATE_CHANNEL);
+        messenger.unregisterOutgoingPluginChannel(this, RaskolHudProtocol.SIGNAL_CHANNEL);
         hudClients.clear();
+        previousPlayerEffects.clear();
+        previousStealthStates.clear();
+        previousHealth.clear();
         raskolClasses = null;
     }
 
@@ -73,7 +94,55 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        hudClients.remove(event.getPlayer().getUniqueId());
+        UUID playerId = event.getPlayer().getUniqueId();
+        hudClients.remove(playerId);
+        previousPlayerEffects.remove(playerId);
+        previousStealthStates.remove(playerId);
+        previousHealth.remove(playerId);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCombatHit(EntityDamageByEntityEvent event) {
+        Player attacker = resolveAttacker(event.getDamager());
+        if (attacker == null || !hudClients.contains(attacker.getUniqueId())
+                || !(event.getEntity() instanceof LivingEntity target)
+                || target.isDead() || event.getFinalDamage() <= 0.0) {
+            return;
+        }
+
+        String classId = classIdOf(attacker);
+        UUID ownerId = attacker.getUniqueId();
+        switch (classId) {
+            case "warlock" -> signalAfterTargetState(
+                    attacker, target,
+                    () -> hasOwnedDot(target, ownerId, null)
+                            ? CrosshairSignal.WARLOCK_CURSE : CrosshairSignal.NONE);
+            case "hunter" -> signalAfterTargetState(
+                    attacker, target,
+                    () -> target.isGlowing()
+                                    || target.hasPotionEffect(PotionEffectType.SLOWNESS)
+                                    || hasOwnedCrowdControl(target, ownerId)
+                            ? CrosshairSignal.HUNTER_MARK : CrosshairSignal.NONE);
+            case "warrior" -> signalAfterTargetState(
+                    attacker, target,
+                    () -> hasOwnedDot(target, ownerId, Set.of("bleed", "bleed_passive"))
+                            ? CrosshairSignal.WARRIOR_BLEED : CrosshairSignal.WARRIOR_HIT);
+            case "mage" -> signalAfterTargetState(
+                    attacker, target,
+                    () -> hasOwnedDot(target, ownerId, Set.of("chilled"))
+                            ? CrosshairSignal.MAGE_FROST : CrosshairSignal.NONE);
+            case "rogue" -> {
+                if (isBehind(target, attacker)) {
+                    sendCrosshairSignal(attacker, CrosshairSignal.ROGUE_BACKSTAB);
+                } else if (attacker.isSneaking()
+                        || attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                    sendCrosshairSignal(attacker, CrosshairSignal.ROGUE_STEALTH);
+                }
+            }
+            default -> {
+                // Для неизвестного класса боевые импульсы не отправляются.
+            }
+        }
     }
 
     private void publishSnapshots() {
@@ -93,6 +162,9 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
             ClassPresentation presentation = ClassPresentation.fromDisplayName(className);
             String factionName = displayFaction(crownPlaceholder(player, "faction"));
             String titleName = crownPlaceholder(player, "title");
+            List<RaskolHudEffect> playerEffects = activeEffects(player.getUniqueId());
+            int health = readInt(player, "hp");
+            observeClassSignals(player, presentation.id(), playerEffects, health);
 
             RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
                     System.currentTimeMillis(),
@@ -104,11 +176,11 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
                     factionName,
                     titleName,
                     readInt(player, "level"),
-                    readInt(player, "hp"),
+                    health,
                     readInt(player, "hp_max"),
                     readInt(player, "resource"),
                     resourceMax(player.getUniqueId()),
-                    activeEffects(player.getUniqueId()),
+                    playerEffects,
                     activeDamageOverTime(player.getUniqueId()),
                     activeCrowdControl(player.getUniqueId()),
                     cooldowns(player));
@@ -118,6 +190,181 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
             getLogger().warning("Could not publish RaskolHUD snapshot for "
                     + player.getUniqueId() + ": " + exception.getMessage());
         }
+    }
+
+
+    private void observeClassSignals(
+            Player player, String classId, List<RaskolHudEffect> effects, int health) {
+        UUID playerId = player.getUniqueId();
+        Set<String> currentEffects = new HashSet<>();
+        for (RaskolHudEffect effect : effects) {
+            currentEffects.add(effect.id());
+        }
+
+        Set<String> previousEffects = previousPlayerEffects.put(playerId, Set.copyOf(currentEffects));
+        if ("priest".equals(classId) && previousEffects != null) {
+            boolean newBlessing = currentEffects.stream()
+                    .filter(id -> !previousEffects.contains(id))
+                    .anyMatch(RaskolHudBridgePlugin::isBlessingEffect);
+            if (newBlessing) {
+                sendCrosshairSignal(player, CrosshairSignal.PRIEST_BLESSING);
+            }
+        }
+
+        Integer oldHealth = previousHealth.put(playerId, health);
+        if ("priest".equals(classId) && oldHealth != null && oldHealth > 0 && health > oldHealth) {
+            sendCrosshairSignal(player, CrosshairSignal.PRIEST_BLESSING);
+        }
+
+        boolean stealth = player.isSneaking() || player.hasPotionEffect(PotionEffectType.INVISIBILITY);
+        Boolean wasStealth = previousStealthStates.put(playerId, stealth);
+        if ("rogue".equals(classId) && Boolean.FALSE.equals(wasStealth) && stealth) {
+            sendCrosshairSignal(player, CrosshairSignal.ROGUE_STEALTH);
+        }
+    }
+
+    private static boolean isBlessingEffect(String id) {
+        String normalized = id.toLowerCase(java.util.Locale.ROOT);
+        return normalized.contains("shield")
+                || normalized.contains("aegis")
+                || normalized.contains("levitat")
+                || normalized.contains("bless")
+                || normalized.contains("ward")
+                || normalized.contains("holy")
+                || normalized.contains("light");
+    }
+
+    private void registerCustomHealSignal() {
+        try {
+            Class<?> rawType = Class.forName(
+                    "dev.raskol.classes.event.CustomHealEvent",
+                    false,
+                    raskolClasses.getClass().getClassLoader());
+            if (!Event.class.isAssignableFrom(rawType)) {
+                return;
+            }
+
+            @SuppressWarnings("unchecked")
+            Class<? extends Event> eventType = (Class<? extends Event>) rawType;
+            getServer().getPluginManager().registerEvent(
+                    eventType,
+                    this,
+                    EventPriority.MONITOR,
+                    (listener, event) -> {
+                        if (event instanceof Cancellable cancellable && cancellable.isCancelled()) {
+                            return;
+                        }
+                        try {
+                            Object healer = invoke(event, "getHealer");
+                            if (healer instanceof Player player && "priest".equals(classIdOf(player))) {
+                                sendCrosshairSignal(player, CrosshairSignal.PRIEST_BLESSING);
+                            }
+                        } catch (ReflectiveOperationException | RuntimeException exception) {
+                            warnOptionalApi("Could not read the healer from CustomHealEvent", exception);
+                        }
+                    },
+                    this,
+                    true);
+            getLogger().info("RaskolHUD registered the optional RaskolClasses heal signal.");
+        } catch (ClassNotFoundException | IllegalArgumentException exception) {
+            getLogger().fine("CustomHealEvent is unavailable; priest crosshair uses observed effects only.");
+        }
+    }
+
+    private void signalAfterTargetState(
+            Player attacker, LivingEntity target, Supplier<CrosshairSignal> signalSupplier) {
+        getServer().getScheduler().runTaskLater(this, () -> {
+            if (!attacker.isOnline() || !target.isValid() || target.isDead()) {
+                return;
+            }
+            CrosshairSignal signal = signalSupplier.get();
+            if (signal != CrosshairSignal.NONE) {
+                sendCrosshairSignal(attacker, signal);
+            }
+        }, 1L);
+    }
+
+    private boolean hasOwnedDot(LivingEntity target, UUID ownerId, Set<String> acceptedIds) {
+        try {
+            Object combat = invoke(raskolClasses, "getCombat");
+            Object dots = invoke(combat, "dots");
+            Object value = invoke(dots, "activeDotsOf", new Class<?>[] {UUID.class}, target.getUniqueId());
+            if (!(value instanceof List<?> active)) {
+                return false;
+            }
+
+            for (Object instance : active) {
+                Object source = invoke(instance, "ownerUuid");
+                Object definition = invoke(instance, "def");
+                String id = stringValue(invoke(definition, "id"));
+                if (ownerId.equals(source)
+                        && (acceptedIds == null || acceptedIds.contains(id.toLowerCase(java.util.Locale.ROOT)))) {
+                    return true;
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not inspect target DoT attribution for crosshair feedback", exception);
+        }
+        return false;
+    }
+
+    private boolean hasOwnedCrowdControl(LivingEntity target, UUID ownerId) {
+        try {
+            Object manager = invoke(raskolClasses, "getCC");
+            Object value = invoke(manager, "activeOf", new Class<?>[] {UUID.class}, target.getUniqueId());
+            if (!(value instanceof List<?> active)) {
+                return false;
+            }
+            long now = System.currentTimeMillis();
+            for (Object instance : active) {
+                Object source = invoke(instance, "sourceUuid");
+                long expiresAt = ((Number) invoke(instance, "expiresAt")).longValue();
+                if (ownerId.equals(source) && expiresAt > now) {
+                    return true;
+                }
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not inspect target crowd-control attribution for crosshair feedback", exception);
+        }
+        return false;
+    }
+
+    private String classIdOf(Player player) {
+        return ClassPresentation.fromDisplayName(placeholder(player, "class")).id();
+    }
+
+    private void sendCrosshairSignal(Player player, CrosshairSignal signal) {
+        if (player == null || signal == null || signal == CrosshairSignal.NONE
+                || !hudClients.contains(player.getUniqueId())) {
+            return;
+        }
+        player.sendPluginMessage(
+                this,
+                RaskolHudProtocol.SIGNAL_CHANNEL,
+                new byte[] {(byte) signal.wireId()});
+    }
+
+    private static Player resolveAttacker(Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+        return null;
+    }
+
+    private static boolean isBehind(LivingEntity target, Player attacker) {
+        Vector facing = target.getLocation().getDirection().setY(0.0);
+        Vector toAttacker = attacker.getLocation().toVector()
+                .subtract(target.getLocation().toVector())
+                .setY(0.0);
+        if (facing.lengthSquared() < 1.0e-9 || toAttacker.lengthSquared() < 1.0e-9) {
+            return false;
+        }
+        double dot = facing.normalize().dot(toAttacker.normalize());
+        double angle = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, dot))));
+        return angle >= 135.0;
     }
 
     private int resourceMax(UUID playerId) {

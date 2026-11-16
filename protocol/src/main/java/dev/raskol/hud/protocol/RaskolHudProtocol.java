@@ -20,13 +20,44 @@ public final class RaskolHudProtocol {
 
     public static final String HELLO_CHANNEL = "raskolhud:hello";
     public static final String STATE_CHANNEL = "raskolhud:state";
-    public static final int PROTOCOL_VERSION = 4;
+    public static final String SIGNAL_CHANNEL = "raskolhud:signal";
+    public static final int PROTOCOL_VERSION = 5;
     public static final int MAX_EFFECTS = 5;
     public static final int MAX_COOLDOWNS = 9;
 
     private static final int MAGIC = 0x52534844;
     private static final int MAX_PACKET_BYTES = 4096;
     private static final int MAX_STRING_BYTES = 128;
+
+    public enum CrosshairSignal {
+        NONE(0, 0),
+        WARLOCK_CURSE(1, 360),
+        HUNTER_MARK(2, 260),
+        WARRIOR_HIT(3, 190),
+        WARRIOR_BLEED(4, 300),
+        PRIEST_BLESSING(5, 420),
+        MAGE_FROST(6, 300),
+        ROGUE_BACKSTAB(7, 260),
+        ROGUE_STEALTH(8, 320);
+
+        private final int wireId;
+        private final int durationMillis;
+
+        CrosshairSignal(int wireId, int durationMillis) {
+            this.wireId = wireId;
+            this.durationMillis = durationMillis;
+        }
+
+        public int wireId() { return wireId; }
+        public int durationMillis() { return durationMillis; }
+
+        public static CrosshairSignal fromWireId(int wireId) {
+            for (CrosshairSignal signal : values()) {
+                if (signal.wireId == wireId) return signal;
+            }
+            throw new IllegalArgumentException("Unknown RaskolHUD crosshair signal: " + wireId);
+        }
+    }
 
     private RaskolHudProtocol() {}
 
