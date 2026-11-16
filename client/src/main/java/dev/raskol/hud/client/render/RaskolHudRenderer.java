@@ -124,7 +124,7 @@ public final class RaskolHudRenderer {
         graphics.text(font, "ОТРИЦАТЕЛЬНЫЕ", x + 8, y + 24, MUTED);
         graphics.text(
                 font,
-                statusSummary(font, state.damageOverTime(), width - 92),
+                statusSummary(font, state.damageOverTime(), width - 114),
                 x + 106,
                 y + 24,
                 HEALTH_HIGHLIGHT);
