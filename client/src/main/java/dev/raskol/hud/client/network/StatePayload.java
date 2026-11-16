@@ -7,7 +7,7 @@ import net.minecraft.resources.Identifier;
 
 public record StatePayload(byte[] body) implements CustomPacketPayload {
 
-    private static final int MAX_BODY_BYTES = 1024;
+    private static final int MAX_BODY_BYTES = 4096;
 
     public static final Type<StatePayload> TYPE =
             new Type<>(Identifier.fromNamespaceAndPath("raskolhud", "state"));
