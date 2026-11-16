@@ -37,6 +37,15 @@ final class RaskolHudProtocolTest {
     }
 
     @Test
+    void crosshairSignalIdsAreStableAndUnknownIdsAreRejected() {
+        assertEquals(1, RaskolHudProtocol.CrosshairSignal.WARLOCK_CURSE.wireId());
+        assertEquals(RaskolHudProtocol.CrosshairSignal.MAGE_FROST,
+                RaskolHudProtocol.CrosshairSignal.fromWireId(6));
+        assertThrows(IllegalArgumentException.class,
+                () -> RaskolHudProtocol.CrosshairSignal.fromWireId(99));
+    }
+
+    @Test
     void helloContainsOnlySupportedProtocolVersion() {
         byte[] hello = RaskolHudProtocol.encodeHello();
 
