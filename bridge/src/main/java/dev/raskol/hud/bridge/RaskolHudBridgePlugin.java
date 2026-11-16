@@ -1,6 +1,7 @@
 package dev.raskol.hud.bridge;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -19,12 +20,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
-import dev.raskol.classes.RaskolClasses;
-import dev.raskol.classes.classsystem.PlayerClass;
-import dev.raskol.classes.combat.dot.DotInstance;
-import dev.raskol.classes.combat.dot.DotService;
-import dev.raskol.classes.combat.school.School;
-import dev.raskol.classes.effect.EffectType;
 import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
@@ -33,15 +28,16 @@ import me.clip.placeholderapi.PlaceholderAPI;
 public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMessageListener, Listener {
 
     private final Set<UUID> hudClients = new HashSet<>();
-    private RaskolClasses raskolClasses;
+    private Object raskolClasses;
+    private boolean warnedOptionalApi;
 
     @Override
     public void onEnable() {
         Plugin dependency = getServer().getPluginManager().getPlugin("RaskolClasses");
-        if (!(dependency instanceof RaskolClasses classes)) {
+        if (dependency == null || !dependency.isEnabled()) {
             throw new IllegalStateException("RaskolClasses dependency is not available");
         }
-        this.raskolClasses = classes;
+        this.raskolClasses = dependency;
 
         Messenger messenger = getServer().getMessenger();
         messenger.registerIncomingPluginChannel(this, RaskolHudProtocol.HELLO_CHANNEL, this);
@@ -93,10 +89,6 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         try {
             String className = placeholder(player, "class");
             ClassPresentation presentation = ClassPresentation.fromDisplayName(className);
-            PlayerClass playerClass = raskolClasses.getClassProvider().getClassOf(player);
-
-            int resourceMax = (int) Math.round(
-                    raskolClasses.getResources().stateOf(player.getUniqueId()).getEffectiveMax());
 
             RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
                     System.currentTimeMillis(),
@@ -109,9 +101,9 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
                     readInt(player, "hp"),
                     readInt(player, "hp_max"),
                     readInt(player, "resource"),
-                    resourceMax,
-                    activeEffects(player, playerClass),
-                    activeDamageOverTime(player));
+                    resourceMax(player.getUniqueId()),
+                    activeEffects(player.getUniqueId()),
+                    activeDamageOverTime(player.getUniqueId()));
 
             player.sendPluginMessage(this, RaskolHudProtocol.STATE_CHANNEL, RaskolHudProtocol.encode(snapshot));
         } catch (IOException | RuntimeException exception) {
@@ -120,96 +112,173 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         }
     }
 
-    private List<RaskolHudEffect> activeEffects(Player player, PlayerClass playerClass) {
-        Map<EffectType, Long> active = raskolClasses.getEffects().getActiveEffects(player.getUniqueId());
-        if (active.isEmpty()) {
-            return List.of();
+    private int resourceMax(UUID playerId) {
+        try {
+            Object resources = invoke(raskolClasses, "getResources");
+            Object state = invoke(resources, "stateOf", new Class<?>[] {UUID.class}, playerId);
+            Object maximum = invoke(state, "getEffectiveMax");
+            if (maximum instanceof Number number) {
+                return Math.max(0, (int) Math.round(number.doubleValue()));
+            }
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read the effective class resource maximum", exception);
         }
-
-        long now = System.currentTimeMillis();
-        List<RaskolHudEffect> result = new ArrayList<>();
-        active.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .limit(RaskolHudProtocol.MAX_EFFECTS)
-                .forEach(entry -> {
-                    EffectType type = entry.getKey();
-                    String displayName = type.displayName();
-                    if (displayName == null) {
-                        return;
-                    }
-
-                    long expiresAt = entry.getValue();
-                    int remaining = expiresAt == Long.MAX_VALUE
-                            ? -1
-                            : (int) Math.max(0L, (expiresAt - now + 999L) / 1000L);
-                    int duration = effectDurationSeconds(type);
-                    result.add(new RaskolHudEffect(
-                            type.name().toLowerCase(java.util.Locale.ROOT),
-                            displayName,
-                            effectSymbol(type),
-                            remaining,
-                            duration,
-                            1,
-                            false));
-                });
-        return List.copyOf(result);
+        return 0;
     }
 
-    private int effectDurationSeconds(EffectType type) {
-        var config = raskolClasses.getRaskolConfig();
-        return switch (type) {
-            case SHIELD_WALL -> config.durationSeconds(PlayerClass.WARRIOR, "steel_skin", 5);
-            case BLOOD_FURY -> config.durationSeconds(PlayerClass.WARRIOR, "blood_fury", 4);
-            case EVASION -> config.durationSeconds(PlayerClass.ROGUE, "evasion", 4);
-            case STEALTH -> config.durationSeconds(PlayerClass.ROGUE, "stealth", 15);
-            case NO_FALL_DAMAGE -> config.durationSeconds(PlayerClass.HUNTER, "cheetah_aspect", "no-fall", 10);
-            case AIMED_SHOT, EXECUTE -> 0;
-        };
-    }
-
-    private static String effectSymbol(EffectType type) {
-        return switch (type) {
-            case SHIELD_WALL -> "▣";
-            case BLOOD_FURY -> "✦";
-            case AIMED_SHOT -> "➶";
-            case STEALTH -> "◈";
-            case EVASION -> "◇";
-            case NO_FALL_DAMAGE -> "➹";
-            case EXECUTE -> "✧";
-        };
-    }
-
-    private List<RaskolHudEffect> activeDamageOverTime(Player player) {
-        List<DotInstance> active = raskolClasses.getCombat().dots().activeDotsOf(player.getUniqueId());
-        if (active.isEmpty()) {
-            return List.of();
-        }
-
-        long now = System.currentTimeMillis();
-        List<DotInstance> ordered = new ArrayList<>(active);
-        ordered.sort(Comparator.comparing(instance -> instance.def().id()));
-
-        List<RaskolHudEffect> result = new ArrayList<>();
-        for (DotInstance instance : ordered) {
-            if (result.size() >= RaskolHudProtocol.MAX_EFFECTS) {
-                break;
+    private List<RaskolHudEffect> activeEffects(UUID playerId) {
+        try {
+            Object manager = invoke(raskolClasses, "getEffects");
+            Object value = invoke(manager, "getActiveEffects", new Class<?>[] {UUID.class}, playerId);
+            if (!(value instanceof Map<?, ?> active) || active.isEmpty()) {
+                return List.of();
             }
 
-            String id = instance.def().id();
-            int remaining = (int) Math.max(0L, DotService.remainingSeconds(instance, now));
-            int duration = (int) Math.max(1L, (instance.def().durationMillis() + 999L) / 1000L);
-            School school = instance.def().school();
+            long now = System.currentTimeMillis();
+            List<Map.Entry<?, ?>> ordered = new ArrayList<>(active.entrySet());
+            ordered.sort(Comparator.comparing(entry -> enumName(entry.getKey())));
 
-            result.add(new RaskolHudEffect(
-                    id,
-                    dotDisplayName(id),
-                    schoolSymbol(school),
-                    remaining,
-                    duration,
-                    instance.stacks(),
-                    true));
+            List<RaskolHudEffect> result = new ArrayList<>();
+            for (Map.Entry<?, ?> entry : ordered) {
+                if (result.size() >= RaskolHudProtocol.MAX_EFFECTS) {
+                    break;
+                }
+
+                Object type = entry.getKey();
+                String displayName = stringValue(invoke(type, "displayName"));
+                if (displayName.isBlank()) {
+                    continue;
+                }
+
+                long expiresAt = entry.getValue() instanceof Number number
+                        ? number.longValue()
+                        : now;
+                int remaining = expiresAt == Long.MAX_VALUE
+                        ? -1
+                        : (int) Math.max(0L, Math.min(86_400L, (expiresAt - now + 999L) / 1000L));
+                String id = enumName(type).toLowerCase(java.util.Locale.ROOT);
+
+                result.add(new RaskolHudEffect(
+                        id,
+                        displayName,
+                        effectSymbol(id),
+                        remaining,
+                        0,
+                        1,
+                        false));
+            }
+            return List.copyOf(result);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read active RaskolClasses effects", exception);
+            return List.of();
         }
-        return List.copyOf(result);
+    }
+
+    private List<RaskolHudEffect> activeDamageOverTime(UUID playerId) {
+        try {
+            Object combat = invoke(raskolClasses, "getCombat");
+            Object service = invoke(combat, "dots");
+            Object value = invoke(service, "activeDotsOf", new Class<?>[] {UUID.class}, playerId);
+            if (!(value instanceof List<?> active) || active.isEmpty()) {
+                return List.of();
+            }
+
+            long now = System.currentTimeMillis();
+            List<Object> ordered = new ArrayList<>(active);
+            ordered.sort(Comparator.comparing(instance -> {
+                try {
+                    Object def = invoke(instance, "def");
+                    return stringValue(invoke(def, "id"));
+                } catch (ReflectiveOperationException exception) {
+                    return "";
+                }
+            }));
+
+            List<RaskolHudEffect> result = new ArrayList<>();
+            for (Object instance : ordered) {
+                if (result.size() >= RaskolHudProtocol.MAX_EFFECTS) {
+                    break;
+                }
+
+                Object def = invoke(instance, "def");
+                String id = stringValue(invoke(def, "id"));
+                String school = "arcane";
+                Object schoolValue = invoke(def, "school");
+                if (schoolValue != null) {
+                    school = stringValue(invoke(schoolValue, "id"));
+                }
+
+                long expiresAt = ((Number) invoke(instance, "expiresAt")).longValue();
+                long durationMillis = ((Number) invoke(def, "durationMillis")).longValue();
+                int remaining = (int) Math.max(0L, Math.min(86_400L, (expiresAt - now + 999L) / 1000L));
+                int duration = (int) Math.max(1L, Math.min(86_400L, (durationMillis + 999L) / 1000L));
+                int stacks = ((Number) invoke(instance, "stacks")).intValue();
+
+                result.add(new RaskolHudEffect(
+                        id,
+                        dotDisplayName(id),
+                        schoolSymbol(school),
+                        remaining,
+                        duration,
+                        stacks,
+                        true));
+            }
+            return List.copyOf(result);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read active RaskolClasses damage-over-time states", exception);
+            return List.of();
+        }
+    }
+
+    private static Object invoke(Object target, String methodName) throws ReflectiveOperationException {
+        return invoke(target, methodName, new Class<?>[0]);
+    }
+
+    private static Object invoke(
+            Object target,
+            String methodName,
+            Class<?>[] parameterTypes,
+            Object... arguments) throws ReflectiveOperationException {
+
+        if (target == null) {
+            throw new IllegalStateException("Cannot call " + methodName + " on a missing RaskolClasses service");
+        }
+        Method method = target.getClass().getMethod(methodName, parameterTypes);
+        return method.invoke(target, arguments);
+    }
+
+    private static String enumName(Object value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return stringValue(invoke(value, "name"));
+        } catch (ReflectiveOperationException exception) {
+            return value.toString();
+        }
+    }
+
+    private static String stringValue(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private void warnOptionalApi(String message, Exception exception) {
+        if (!warnedOptionalApi) {
+            getLogger().warning(message + ": " + exception.getMessage());
+            warnedOptionalApi = true;
+        }
+    }
+
+    private static String effectSymbol(String id) {
+        return switch (id) {
+            case "shield_wall" -> "▣";
+            case "blood_fury" -> "✦";
+            case "aimed_shot" -> "➶";
+            case "stealth" -> "◈";
+            case "evasion" -> "◇";
+            case "no_fall_damage" -> "➹";
+            default -> "✧";
+        };
     }
 
     private static String dotDisplayName(String id) {
@@ -223,16 +292,17 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         };
     }
 
-    private static String schoolSymbol(School school) {
+    private static String schoolSymbol(String school) {
         return switch (school) {
-            case PHYSICAL -> "⚔";
-            case FIRE -> "♨";
-            case FROST -> "❄";
-            case NATURE -> "✧";
-            case SHADOW -> "☾";
-            case HOLY -> "✚";
-            case ARCANE -> "✦";
-            case TRUE -> "◈";
+            case "physical" -> "⚔";
+            case "fire" -> "♨";
+            case "frost" -> "❄";
+            case "nature" -> "✧";
+            case "shadow" -> "☾";
+            case "holy" -> "✚";
+            case "arcane" -> "✦";
+            case "true" -> "◈";
+            default -> "✦";
         };
     }
 
