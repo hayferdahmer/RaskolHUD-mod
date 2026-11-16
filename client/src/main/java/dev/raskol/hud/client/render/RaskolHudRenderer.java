@@ -19,27 +19,27 @@ import net.minecraft.world.food.FoodData;
 
 public final class RaskolHudRenderer {
 
-    private static final int SHADOW = 0x78000000;
-    private static final int FRAME = 0xDD100D12;
-    private static final int INNER = 0xE019151A;
-    private static final int EDGE_DARK = 0xFF38262B;
+    private static final int SHADOW = 0x45000000;
+    private static final int FRAME = 0x98100D12;
+    private static final int INNER = 0x9D19151A;
+    private static final int EDGE_DARK = 0x9B38262B;
     private static final int TEXT = 0xFFF0E8DF;
-    private static final int SECONDARY = 0xFFC0B1A8;
-    private static final int MUTED = 0xFF8F817D;
+    private static final int SECONDARY = 0xFFD0C2B8;
+    private static final int MUTED = 0xC08F817D;
     private static final int HEALTH = 0xFF873747;
     private static final int HEALTH_HIGHLIGHT = 0xFFB35C68;
     private static final int ARMOR = 0xFF8E9AA8;
     private static final int HUNGER = 0xFFC18A4E;
-    private static final int TRACK = 0xFF21191E;
-    private static final int DIVIDER = 0xFF493238;
+    private static final int TRACK = 0xB221191E;
+    private static final int DIVIDER = 0x70493238;
 
-    private static final int IDENTITY_X = 12;
-    private static final int IDENTITY_Y = 12;
-    private static final int IDENTITY_WIDTH = 260;
-    private static final int IDENTITY_HEIGHT = 50;
-    private static final int STATUS_WIDTH = 360;
-    private static final int STATUS_HEIGHT = 48;
-    private static final int HOTBAR_TOP_OFFSET = 24;
+    private static final int IDENTITY_X = 10;
+    private static final int IDENTITY_Y = 10;
+    private static final int IDENTITY_WIDTH = 226;
+    private static final int IDENTITY_HEIGHT = 42;
+    private static final int STATUS_WIDTH = 216;
+    private static final int STATUS_HEIGHT = 38;
+    private static final int HOTBAR_GAP = 22;
 
     private static final NumberFormat NUMBER_FORMAT =
             NumberFormat.getIntegerInstance(Locale.forLanguageTag("ru-RU"));
@@ -62,7 +62,7 @@ public final class RaskolHudRenderer {
         drawIdentity(graphics, font, player, state);
         drawConnection(graphics, font, graphics.guiWidth());
         drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight());
-        RaskolScoreboardRenderer.render(graphics, font, client);
+        RaskolScoreboardRenderer.render(graphics, font, client, state);
     }
 
     private static void drawIdentity(
@@ -76,26 +76,27 @@ public final class RaskolHudRenderer {
         int right = x + IDENTITY_WIDTH;
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
-        drawFrame(graphics, x, y, IDENTITY_WIDTH, IDENTITY_HEIGHT, theme.accent());
-        drawPlayerHead(graphics, player, x + 10, y + 10, theme);
+        drawFrame(graphics, x, y, IDENTITY_WIDTH, IDENTITY_HEIGHT, withAlpha(theme.accent(), 190));
+        drawPlayerHead(graphics, player, x + 8, y + 8, theme);
 
-        String nickname = fit(font, player.getName().getString(), 150);
-        graphics.text(font, nickname, x + 49, y + 9, TEXT);
+        String nickname = fit(font, player.getName().getString(), 132);
+        graphics.text(font, nickname, x + 42, y + 7, TEXT);
         drawRightAligned(
-                graphics, font, "УР. " + NUMBER_FORMAT.format(state.characterLevel()),
-                right - 10, y + 9, theme.highlight());
+                graphics,
+                font,
+                "УР. " + NUMBER_FORMAT.format(state.characterLevel()),
+                right - 8,
+                y + 7,
+                theme.highlight());
 
         String className = displayOr(state.className(), "Без класса");
         String specialization = state.specializationName();
-        graphics.text(font, className, x + 49, y + 26, theme.highlight());
+        graphics.text(font, fit(font, className, 92), x + 42, y + 23, theme.highlight());
         if (!specialization.isBlank()) {
             String specText = " (" + specialization + ")";
-            int specX = x + 49 + font.width(className);
-            int available = right - 10 - specX;
-            graphics.text(font, fit(font, specText, Math.max(0, available)), specX, y + 26, SECONDARY);
-        } else {
-            graphics.text(font, " (специализация не выбрана)",
-                    x + 49 + font.width(className), y + 26, SECONDARY);
+            int specX = x + 42 + font.width(className);
+            int available = right - 8 - specX;
+            graphics.text(font, fit(font, specText, Math.max(0, available)), specX, y + 23, SECONDARY);
         }
     }
 
@@ -106,23 +107,23 @@ public final class RaskolHudRenderer {
             int y,
             RaskolClassTheme theme) {
 
-        graphics.fill(x - 2, y - 2, x + 30, y + 30, SHADOW);
-        graphics.fill(x - 1, y - 1, x + 29, y + 29, theme.muted());
-        graphics.fill(x, y, x + 28, y + 28, 0xFF171319);
+        graphics.fill(x - 2, y - 2, x + 26, y + 26, SHADOW);
+        graphics.fill(x - 1, y - 1, x + 25, y + 25, withAlpha(theme.muted(), 210));
+        graphics.fill(x, y, x + 24, y + 24, 0xFF171319);
 
         if (player instanceof AbstractClientPlayer clientPlayer) {
             var texture = clientPlayer.getSkin().body().texturePath();
             // Лицо и верхний слой берутся из актуальной текстуры скина игрока.
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture,
-                    x, y, 8.0F, 8.0F, 28, 28, 8, 8, 64, 64);
+                    x, y, 8.0F, 8.0F, 24, 24, 8, 8, 64, 64);
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture,
-                    x, y, 40.0F, 8.0F, 28, 28, 8, 8, 64, 64);
+                    x, y, 40.0F, 8.0F, 24, 24, 8, 8, 64, 64);
         } else {
-            graphics.fill(x + 8, y + 8, x + 20, y + 20, theme.accent());
+            graphics.fill(x + 7, y + 7, x + 17, y + 17, theme.accent());
         }
 
-        graphics.fill(x - 1, y - 1, x + 29, y, theme.highlight());
-        graphics.fill(x - 1, y + 28, x + 29, y + 29, EDGE_DARK);
+        graphics.fill(x - 1, y - 1, x + 25, y, withAlpha(theme.highlight(), 200));
+        graphics.fill(x - 1, y + 24, x + 25, y + 25, EDGE_DARK);
     }
 
     private static void drawBottomStatus(
@@ -133,52 +134,55 @@ public final class RaskolHudRenderer {
             int screenWidth,
             int screenHeight) {
 
-        int width = Math.min(STATUS_WIDTH, Math.max(160, screenWidth - 16));
+        int width = Math.max(1, Math.min(STATUS_WIDTH, screenWidth - 12));
         int x = (screenWidth - width) / 2;
-        int y = screenHeight - HOTBAR_TOP_OFFSET - STATUS_HEIGHT;
+        int y = screenHeight - HOTBAR_GAP - STATUS_HEIGHT;
         int half = width / 2;
-        int left = x + 10;
-        int right = x + half + 8;
-        int rightEdge = x + width - 10;
+        int left = x + 7;
+        int right = x + half + 5;
+        int leftEdge = x + half - 7;
+        int rightEdge = x + width - 7;
+        int columnWidth = half - 14;
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
-        drawCrowdControl(graphics, font, state, screenWidth, y - 23);
-        drawFrame(graphics, x, y, width, STATUS_HEIGHT, theme.accent());
-        graphics.fill(x + half, y + 7, x + half + 1, y + STATUS_HEIGHT - 7, DIVIDER);
+        drawCrowdControl(graphics, font, state, screenWidth, y - 19);
+        drawFrame(graphics, x, y, width, STATUS_HEIGHT, withAlpha(theme.accent(), 190));
+        graphics.fill(x + half, y + 6, x + half + 1, y + STATUS_HEIGHT - 6, DIVIDER);
 
-        String healthValue = NUMBER_FORMAT.format(state.health()) + " / " + NUMBER_FORMAT.format(state.healthMax());
-        graphics.text(font, "ЗДОРОВЬЕ", left, y + 5, MUTED);
-        drawRightAligned(graphics, font, healthValue, x + half - 8, y + 5, TEXT);
-        drawBar(graphics, left, y + 17, half - 28, 5,
-                state.health(), state.healthMax(), HEALTH, HEALTH_HIGHLIGHT);
+        String healthValue = NUMBER_FORMAT.format(state.health()) + "/" + NUMBER_FORMAT.format(state.healthMax());
+        graphics.text(font, "ЗДОРОВЬЕ", left, y + 4, MUTED);
+        drawRightAligned(graphics, font, fit(font, healthValue, columnWidth - font.width("ЗДОРОВЬЕ")),
+                leftEdge, y + 4, TEXT);
+        drawBar(graphics, left, y + 16, columnWidth, 4,
+                state.health(), state.healthMax(), withAlpha(HEALTH, 220), HEALTH_HIGHLIGHT);
 
         String resourceLabel = displayOr(state.resourceName(), "РЕСУРС").toUpperCase(Locale.ROOT);
         String resourceValue = state.resourceMax() > 0
-                ? NUMBER_FORMAT.format(state.resource()) + " / " + NUMBER_FORMAT.format(state.resourceMax())
+                ? NUMBER_FORMAT.format(state.resource()) + "/" + NUMBER_FORMAT.format(state.resourceMax())
                 : NUMBER_FORMAT.format(state.resource());
         String resourceTitle = (state.resourceSymbol().isBlank() ? "" : state.resourceSymbol() + " ")
                 + resourceLabel;
-        graphics.text(font, resourceTitle, right, y + 5, theme.highlight());
-        drawRightAligned(graphics, font, resourceValue, rightEdge, y + 5, TEXT);
+        graphics.text(font, fit(font, resourceTitle, columnWidth - font.width(resourceValue) - 4),
+                right, y + 4, theme.highlight());
+        drawRightAligned(graphics, font, resourceValue, rightEdge, y + 4, TEXT);
         if (state.resourceMax() > 0) {
-            drawBar(graphics, right, y + 17, half - 28, 5,
-                    state.resource(), state.resourceMax(), theme.accent(), theme.highlight());
+            drawBar(graphics, right, y + 16, columnWidth, 4,
+                    state.resource(), state.resourceMax(), withAlpha(theme.accent(), 220), theme.highlight());
         } else {
-            drawDecorativeRule(graphics, right, y + 19, half - 28, theme.accent());
+            drawDecorativeRule(graphics, right, y + 18, columnWidth, withAlpha(theme.accent(), 210));
         }
 
         int armor = Math.max(0, player.getArmorValue());
         FoodData food = player.getFoodData();
         int foodLevel = Math.max(0, Math.min(20, food.getFoodLevel()));
-        float saturation = Math.max(0.0F, Math.min(20.0F, food.getSaturationLevel()));
 
-        graphics.text(font, "БРОНЯ", left, y + 29, MUTED);
-        drawRightAligned(graphics, font, NUMBER_FORMAT.format(armor), x + half - 8, y + 29, ARMOR);
-        drawSegmentedMeter(graphics, left, y + 40, half - 28, 4, armor, 20, ARMOR);
+        graphics.text(font, "БРОНЯ " + armor, left, y + 25, ARMOR);
+        drawBar(graphics, left, y + 34, columnWidth, 2, armor, 20,
+                withAlpha(ARMOR, 200), withAlpha(ARMOR, 200));
 
-        graphics.text(font, "СЫТОСТЬ", right, y + 29, MUTED);
-        drawRightAligned(graphics, font, foodLevel + "/20", rightEdge, y + 29, HUNGER);
-        drawFoodPips(graphics, right, y + 40, half - 28, foodLevel, saturation);
+        graphics.text(font, "ЕДА " + foodLevel + "/20", right, y + 25, HUNGER);
+        drawBar(graphics, right, y + 34, columnWidth, 2, foodLevel, 20,
+                withAlpha(HUNGER, 205), withAlpha(HUNGER, 205));
     }
 
     private static void drawCrowdControl(
@@ -196,10 +200,10 @@ public final class RaskolHudRenderer {
             return;
         }
 
-        int visible = Math.min(9, debuffs.size());
+        int visible = Math.min(6, debuffs.size());
         boolean hasOverflow = debuffs.size() > visible;
-        int chipWidth = 25;
-        int gap = 4;
+        int chipWidth = 22;
+        int gap = 3;
         int count = visible + (hasOverflow ? 1 : 0);
         int totalWidth = count * chipWidth + Math.max(0, count - 1) * gap;
         int x = (screenWidth - totalWidth) / 2;
@@ -209,22 +213,24 @@ public final class RaskolHudRenderer {
             RaskolHudEffect effect = debuffs.get(index);
             int chipX = x + index * (chipWidth + gap);
             int color = effect.harmful() ? HEALTH : theme.accent();
-            graphics.fill(chipX + 1, y + 2, chipX + chipWidth + 1, y + 21, SHADOW);
-            graphics.fill(chipX, y, chipX + chipWidth, y + 19, FRAME);
-            graphics.fill(chipX, y, chipX + chipWidth, y + 1, color);
+
+            graphics.fill(chipX + 1, y + 2, chipX + chipWidth + 1, y + 17, SHADOW);
+            graphics.fill(chipX, y, chipX + chipWidth, y + 15, 0x90100D12);
+            graphics.fill(chipX, y, chipX + chipWidth, y + 1, withAlpha(color, 210));
 
             String symbol = effect.symbol().isBlank() ? "!" : effect.symbol();
-            graphics.text(font, symbol, chipX + (chipWidth - font.width(symbol)) / 2, y + 2, 0xFFF0E8DF);
+            graphics.text(font, symbol, chipX + (chipWidth - font.width(symbol)) / 2, y + 1, 0xFFF0E8DF);
             String timer = effect.remainingSeconds() < 0 ? "∞" : effect.remainingSeconds() + "с";
-            graphics.text(font, timer, chipX + (chipWidth - font.width(timer)) / 2, y + 11, 0xFFD0C4BA);
+            graphics.text(font, timer, chipX + (chipWidth - font.width(timer)) / 2, y + 8, SECONDARY);
         }
 
         if (hasOverflow) {
             int overflowX = x + visible * (chipWidth + gap);
             String overflow = "+" + (debuffs.size() - visible);
-            graphics.fill(overflowX, y, overflowX + chipWidth, y + 19, FRAME);
-            graphics.fill(overflowX, y, overflowX + chipWidth, y + 1, theme.muted());
-            graphics.text(font, overflow, overflowX + (chipWidth - font.width(overflow)) / 2, y + 5, SECONDARY);
+            graphics.fill(overflowX, y, overflowX + chipWidth, y + 15, 0x90100D12);
+            graphics.fill(overflowX, y, overflowX + chipWidth, y + 1, withAlpha(theme.muted(), 210));
+            graphics.text(font, overflow, overflowX + (chipWidth - font.width(overflow)) / 2,
+                    y + 4, SECONDARY);
         }
     }
 
@@ -236,28 +242,35 @@ public final class RaskolHudRenderer {
             int height,
             int accent) {
 
-        graphics.fill(x + 2, y + 3, x + width + 2, y + height + 3, SHADOW);
+        graphics.fill(x + 2, y + 2, x + width + 2, y + height + 2, SHADOW);
         graphics.fill(x, y, x + width, y + height, FRAME);
         graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, INNER);
         graphics.fill(x + 7, y, x + width - 7, y + 1, accent);
         graphics.fill(x, y + 7, x + 1, y + height - 7, EDGE_DARK);
         graphics.fill(x + width - 1, y + 7, x + width, y + height - 7, EDGE_DARK);
         graphics.fill(x + 7, y + height - 1, x + width - 7, y + height, EDGE_DARK);
-        graphics.fill(x + 8, y + 3, x + width - 8, y + 4, 0x553F2C2C);
     }
 
     private static void drawConnection(GuiGraphicsExtractor graphics, Font font, int screenWidth) {
         String label = "РАСКОЛ";
-        int x = screenWidth - font.width(label) - 22;
-        graphics.fill(x, 21, x + 5, 26, 0xFFB58A62);
-        graphics.fill(x + 1, 22, x + 4, 25, 0xFFFFD9A0);
-        graphics.text(font, label, x + 10, 18, SECONDARY);
+        int x = screenWidth - font.width(label) - 20;
+        graphics.fill(x, 20, x + 4, 24, 0xFFB58A62);
+        graphics.fill(x + 1, 21, x + 3, 23, 0xFFFFD9A0);
+        graphics.text(font, label, x + 8, 17, SECONDARY);
     }
 
     private static void drawBar(
-            GuiGraphicsExtractor graphics, int x, int y, int width, int height,
-            int current, int maximum, int fillColor, int highlightColor) {
-        if (width <= 0) {
+            GuiGraphicsExtractor graphics,
+            int x,
+            int y,
+            int width,
+            int height,
+            int current,
+            int maximum,
+            int fillColor,
+            int highlightColor) {
+
+        if (width <= 0 || height <= 0) {
             return;
         }
         graphics.fill(x, y, x + width, y + height, TRACK);
@@ -272,64 +285,34 @@ public final class RaskolHudRenderer {
         }
     }
 
-    private static void drawSegmentedMeter(
-            GuiGraphicsExtractor graphics, int x, int y, int width, int height,
-            int current, int maximum, int color) {
-        if (width <= 0 || maximum <= 0) {
-            return;
-        }
-        int segments = 10;
-        int gap = 2;
-        int segmentWidth = Math.max(1, (width - gap * (segments - 1)) / segments);
-        int clamped = Math.max(0, Math.min(maximum, current));
-        for (int i = 0; i < segments; i++) {
-            int segmentX = x + i * (segmentWidth + gap);
-            graphics.fill(segmentX, y, segmentX + segmentWidth, y + height, TRACK);
-            double segmentFill = Math.max(0.0, Math.min(1.0,
-                    (clamped - i * maximum / (double) segments) / (maximum / (double) segments)));
-            int fillWidth = (int) Math.round(segmentWidth * segmentFill);
-            if (fillWidth > 0) {
-                graphics.fill(segmentX, y, segmentX + fillWidth, y + height, color);
-            }
-        }
-    }
-
-    private static void drawFoodPips(
-            GuiGraphicsExtractor graphics, int x, int y, int width, int foodLevel, float saturation) {
-        if (width <= 0) {
-            return;
-        }
-        int pips = 10;
-        int gap = 2;
-        int pipWidth = Math.max(1, (width - gap * (pips - 1)) / pips);
-        for (int i = 0; i < pips; i++) {
-            int pipX = x + i * (pipWidth + gap);
-            graphics.fill(pipX, y, pipX + pipWidth, y + 4, TRACK);
-            double fill = Math.max(0.0, Math.min(1.0, (foodLevel - i * 2) / 2.0));
-            int fillWidth = (int) Math.round(pipWidth * fill);
-            if (fillWidth > 0) {
-                graphics.fill(pipX, y, pipX + fillWidth, y + 4, HUNGER);
-            }
-        }
-        int saturationWidth = (int) Math.round(width * Math.max(0.0F, Math.min(1.0F, saturation / 20.0F)));
-        if (saturationWidth > 0) {
-            graphics.fill(x, y - 1, x + saturationWidth, y, 0xFFE4C08B);
-        }
-    }
-
     private static void drawDecorativeRule(
-            GuiGraphicsExtractor graphics, int x, int y, int width, int color) {
+            GuiGraphicsExtractor graphics,
+            int x,
+            int y,
+            int width,
+            int color) {
+
         if (width <= 0) {
             return;
         }
         graphics.fill(x, y, x + width, y + 1, TRACK);
-        graphics.fill(x, y, x + Math.min(14, width), y + 1, color);
-        graphics.fill(x + width - Math.min(14, width), y, x + width, y + 1, color);
+        graphics.fill(x, y, x + Math.min(10, width), y + 1, color);
+        graphics.fill(x + width - Math.min(10, width), y, x + width, y + 1, color);
     }
 
     private static void drawRightAligned(
-            GuiGraphicsExtractor graphics, Font font, String text, int right, int y, int color) {
+            GuiGraphicsExtractor graphics,
+            Font font,
+            String text,
+            int right,
+            int y,
+            int color) {
+
         graphics.text(font, text, right - font.width(text), y, color);
+    }
+
+    private static int withAlpha(int color, int alpha) {
+        return (color & 0x00FFFFFF) | (Math.max(0, Math.min(255, alpha)) << 24);
     }
 
     private static String fit(Font font, String text, int maxWidth) {

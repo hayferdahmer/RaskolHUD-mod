@@ -20,7 +20,7 @@ public final class RaskolHudProtocol {
 
     public static final String HELLO_CHANNEL = "raskolhud:hello";
     public static final String STATE_CHANNEL = "raskolhud:state";
-    public static final int PROTOCOL_VERSION = 3;
+    public static final int PROTOCOL_VERSION = 4;
     public static final int MAX_EFFECTS = 5;
     public static final int MAX_COOLDOWNS = 9;
 
@@ -56,6 +56,8 @@ public final class RaskolHudProtocol {
             writeString(out, snapshot.specializationName());
             writeString(out, snapshot.resourceName());
             writeString(out, snapshot.resourceSymbol());
+            writeString(out, snapshot.factionName());
+            writeString(out, snapshot.titleName());
 
             out.writeInt(snapshot.characterLevel());
             out.writeInt(snapshot.health());
@@ -97,6 +99,8 @@ public final class RaskolHudProtocol {
             String specializationName = readString(in);
             String resourceName = readString(in);
             String resourceSymbol = readString(in);
+            String factionName = readString(in);
+            String titleName = readString(in);
 
             int level = in.readInt();
             int health = in.readInt();
@@ -120,6 +124,8 @@ public final class RaskolHudProtocol {
                     specializationName,
                     resourceName,
                     resourceSymbol,
+                    factionName,
+                    titleName,
                     level,
                     health,
                     healthMax,

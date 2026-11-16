@@ -14,6 +14,10 @@ public final class RaskolHotbarRenderer {
 
     private RaskolHotbarRenderer() {}
 
+    private static int withAlpha(int color, int alpha) {
+        return (color & 0x00FFFFFF) | (Math.max(0, Math.min(255, alpha)) << 24);
+    }
+
     public static void render(GuiGraphicsExtractor graphics, RaskolHudSnapshot state) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
@@ -27,18 +31,18 @@ public final class RaskolHotbarRenderer {
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
         // Ванильные иконки сохраняются; над ними рисуем рамку и классовую подсветку.
-        graphics.fill(left - 2, top - 3, right + 2, top - 2, 0xD8100D12);
+        graphics.fill(left - 2, top - 3, right + 2, top - 2, 0x97100D12);
         graphics.fill(left - 2, top - 3, left - 1, top + 22, theme.muted());
         graphics.fill(right + 1, top - 3, right + 2, top + 22, theme.muted());
-        graphics.fill(left - 2, top + 21, right + 2, top + 22, 0xE8100D12);
+        graphics.fill(left - 2, top + 21, right + 2, top + 22, 0xA2100D12);
         graphics.fill(left + 5, top - 3, right - 5, top - 2, theme.accent());
 
         int selectedSlot = client.player.getInventory().getSelectedSlot();
         int selectedX = left + selectedSlot * 20;
-        graphics.fill(selectedX, top - 1, selectedX + 20, top, theme.highlight());
-        graphics.fill(selectedX, top + 19, selectedX + 20, top + 20, theme.accent());
-        graphics.fill(selectedX, top - 1, selectedX + 1, top + 20, theme.muted());
-        graphics.fill(selectedX + 19, top - 1, selectedX + 20, top + 20, theme.muted());
+        graphics.fill(selectedX, top - 1, selectedX + 20, top, withAlpha(theme.highlight(), 190));
+        graphics.fill(selectedX, top + 19, selectedX + 20, top + 20, withAlpha(theme.accent(), 185));
+        graphics.fill(selectedX, top - 1, selectedX + 1, top + 20, withAlpha(theme.muted(), 165));
+        graphics.fill(selectedX + 19, top - 1, selectedX + 20, top + 20, withAlpha(theme.muted(), 165));
 
         Font font = client.font;
         Map<Integer, RaskolHudCooldown> cooldowns = new HashMap<>();
@@ -53,8 +57,8 @@ public final class RaskolHotbarRenderer {
             int iconY = top + 3;
 
             // Полупрозрачный слой закрывает ванильную полоску прочности/КД.
-            graphics.fill(iconX, iconY, iconX + 16, iconY + 16, 0xB9000000);
-            graphics.fill(iconX, iconY + 15, iconX + 16, iconY + 16, theme.muted());
+            graphics.fill(iconX, iconY, iconX + 16, iconY + 16, 0x82000000);
+            graphics.fill(iconX, iconY + 15, iconX + 16, iconY + 16, withAlpha(theme.muted(), 190));
 
             int seconds = (int) Math.ceil(cooldown.remainingMillis() / 1000.0);
             String label = seconds > 99 ? "99+" : Integer.toString(seconds);

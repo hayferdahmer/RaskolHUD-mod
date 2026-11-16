@@ -16,6 +16,8 @@ public record RaskolHudSnapshot(
         String specializationName,
         String resourceName,
         String resourceSymbol,
+        String factionName,
+        String titleName,
         int characterLevel,
         int health,
         int healthMax,
@@ -32,6 +34,8 @@ public record RaskolHudSnapshot(
         specializationName = safe(specializationName);
         resourceName = safe(resourceName);
         resourceSymbol = safe(resourceSymbol);
+        factionName = safe(factionName);
+        titleName = safe(titleName);
 
         characterLevel = Math.max(0, characterLevel);
         healthMax = Math.max(0, healthMax);

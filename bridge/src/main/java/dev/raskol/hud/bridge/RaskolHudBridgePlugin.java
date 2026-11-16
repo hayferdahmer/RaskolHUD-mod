@@ -91,6 +91,8 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         try {
             String className = placeholder(player, "class");
             ClassPresentation presentation = ClassPresentation.fromDisplayName(className);
+            String factionName = displayFaction(crownPlaceholder(player, "faction"));
+            String titleName = crownPlaceholder(player, "title");
 
             RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
                     System.currentTimeMillis(),
@@ -99,6 +101,8 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
                     placeholder(player, "spec"),
                     presentation.resourceName(),
                     presentation.resourceSymbol(),
+                    factionName,
+                    titleName,
                     readInt(player, "level"),
                     readInt(player, "hp"),
                     readInt(player, "hp_max"),
@@ -425,6 +429,30 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
         }
         String trimmed = result.trim();
         return trimmed.startsWith("%raskolclasses_") ? "" : trimmed;
+    }
+
+    private String crownPlaceholder(Player player, String key) {
+        String result = PlaceholderAPI.setPlaceholders(player, "%raskolcrown_" + key + "%");
+        if (result == null) {
+            return "";
+        }
+        String trimmed = result.trim();
+        return trimmed.startsWith("%raskolcrown_") ? "" : trimmed;
+    }
+
+    private static String displayFaction(String faction) {
+        if (faction == null || faction.isBlank()) {
+            return "";
+        }
+        return switch (faction.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "rassvet" -> "Рассвет";
+            case "valradis" -> "Вальрадис";
+            default -> {
+                String normalized = faction.trim().replace('_', ' ').replace('-', ' ');
+                yield normalized.substring(0, 1).toUpperCase(java.util.Locale.ROOT)
+                        + normalized.substring(1);
+            }
+        };
     }
 
     private int readInt(Player player, String key) {

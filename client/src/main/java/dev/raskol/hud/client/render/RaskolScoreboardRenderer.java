@@ -2,110 +2,157 @@ package dev.raskol.hud.client.render;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
+import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerScoreEntry;
 import net.minecraft.world.scores.Scoreboard;
 
 /**
- * Собственный рендер боковой таблицы сервера.
+ * Компактная панель сведений о персонаже и только уникальных строк scoreboard.
  *
- * Значения читаются из уже синхронизированного scoreboard Minecraft:
- * мод не создаёт и не пересчитывает серверные очки.
+ * Пустые и дублирующие строки не занимают место. Фракция и титул берутся
+ * из серверного снимка RaskolClasses, а не вычисляются на клиенте.
  */
 public final class RaskolScoreboardRenderer {
 
-    private static final int PANEL_WIDTH = 196;
-    private static final int PANEL_RIGHT_MARGIN = 12;
-    private static final int PANEL_TOP = 56;
-    private static final int PANEL_PADDING = 9;
-    private static final int ROW_HEIGHT = 11;
-    private static final int MAX_ROWS = 12;
+    private static final int PANEL_WIDTH = 158;
+    private static final int PANEL_RIGHT_MARGIN = 10;
+    private static final int PANEL_TOP = 60;
+    private static final int PANEL_PADDING = 7;
+    private static final int ROW_HEIGHT = 10;
+    private static final int MAX_ROWS = 3;
 
-    private static final int SHADOW = 0x70000000;
-    private static final int PANEL = 0xE6110D12;
-    private static final int INNER = 0xC91B151A;
-    private static final int EDGE = 0xFF8E663F;
-    private static final int EDGE_DARK = 0xFF3A2929;
+    private static final int SHADOW = 0x36000000;
+    private static final int PANEL = 0xA1110D12;
+    private static final int INNER = 0x8D1B151A;
+    private static final int EDGE = 0xA08E663F;
+    private static final int EDGE_DARK = 0x843A2929;
     private static final int TITLE = 0xFFE1B66F;
-    private static final int TEXT = 0xFFE8DED3;
+    private static final int TEXT = 0xE8E8DED3;
     private static final int VALUE = 0xFFD2A76C;
-    private static final int MUTED = 0xFF8F817D;
-    private static final int DIVIDER = 0xFF493238;
+    private static final int DIVIDER = 0x70493238;
+
+    private static final Set<String> DUPLICATE_LABELS = Set.of(
+            "здоровье", "health", "hp", "ресурс", "resource", "мана", "mana",
+            "ярость", "энергия", "концентрация", "свет", "скверна",
+            "класс", "class", "специализация", "spec", "уровень", "level",
+            "броня", "armor", "еда", "сытость", "hunger");
+
+    private record Row(String label, String value) {}
 
     private RaskolScoreboardRenderer() {}
 
     public static void render(
             GuiGraphicsExtractor graphics,
             Font font,
-            Minecraft client) {
+            Minecraft client,
+            RaskolHudSnapshot state) {
 
-        if (client.level == null || client.player == null) {
+        if (client.level == null || client.player == null || state == null) {
             return;
+        }
+
+        List<Row> rows = new ArrayList<>();
+        if (!state.factionName().isBlank()) {
+            rows.add(new Row("ФРАКЦИЯ", state.factionName()));
+        }
+        if (!state.titleName().isBlank()) {
+            rows.add(new Row("ТИТУЛ", state.titleName()));
         }
 
         Scoreboard scoreboard = client.level.getScoreboard();
         Objective objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
-        if (objective == null) {
+        List<PlayerScoreEntry> scoreEntries = new ArrayList<>();
+        if (objective != null) {
+            scoreEntries.addAll(scoreboard.listPlayerScores(objective));
+            scoreEntries.removeIf(PlayerScoreEntry::isHidden);
+            scoreEntries.sort(
+                    Comparator.comparingInt(PlayerScoreEntry::value)
+                            .reversed()
+                            .thenComparing(PlayerScoreEntry::owner));
+        }
+
+        Set<String> seen = new HashSet<>();
+        boolean hasContext = !state.factionName().isBlank() || !state.titleName().isBlank();
+        int maxRows = MAX_ROWS + (hasContext ? rows.size() : 0);
+        for (PlayerScoreEntry entry : scoreEntries) {
+            if (rows.size() >= maxRows || objective == null) {
+                break;
+            }
+
+            String label = (entry.display() != null ? entry.display() : entry.ownerName()).getString().trim();
+            String value = entry.formatValue(objective.numberFormat()).getString().trim();
+            if (label.isBlank() || value.isBlank()
+                    || label.equalsIgnoreCase(client.player.getName().getString())
+                    || isDuplicateLabel(label, state)) {
+                continue;
+            }
+
+            String normalized = label.toLowerCase(Locale.ROOT);
+            if (!seen.add(normalized)) {
+                continue;
+            }
+            rows.add(new Row(label, value));
+        }
+
+        // Не рисуем рамку, если на сервере пока нет полезных сведений.
+        if (rows.isEmpty()) {
             return;
         }
 
-        List<PlayerScoreEntry> rows = new ArrayList<>(scoreboard.listPlayerScores(objective));
-        rows.removeIf(PlayerScoreEntry::isHidden);
-        rows.sort(
-                Comparator.comparingInt(PlayerScoreEntry::value)
-                        .reversed()
-                        .thenComparing(PlayerScoreEntry::owner));
-
-        if (rows.size() > MAX_ROWS) {
-            rows = new ArrayList<>(rows.subList(0, MAX_ROWS));
-        }
-
-        Component title = objective.getDisplayName();
-        int longestText = font.width(title);
-        int longestValue = 0;
-
-        for (PlayerScoreEntry row : rows) {
-            Component label = row.display() != null ? row.display() : row.ownerName();
-            longestText = Math.max(longestText, font.width(label));
-            longestValue = Math.max(longestValue, font.width(row.formatValue(objective.numberFormat())));
-        }
-
-        int contentWidth = Math.min(
-                PANEL_WIDTH - PANEL_PADDING * 2 - 8,
-                longestText + longestValue + 12);
-        int width = Math.max(142, contentWidth + PANEL_PADDING * 2 + 8);
-        int height = 25 + rows.size() * ROW_HEIGHT + 7;
+        int width = PANEL_WIDTH;
+        int height = 22 + rows.size() * ROW_HEIGHT + 5;
         int x = graphics.guiWidth() - PANEL_RIGHT_MARGIN - width;
         int y = PANEL_TOP;
 
         drawPanel(graphics, x, y, width, height);
-        graphics.centeredText(font, title, x + width / 2, y + 7, TITLE);
-        graphics.fill(x + PANEL_PADDING, y + 21, x + width - PANEL_PADDING, y + 22, DIVIDER);
+        String heading = hasContext
+                ? "СВЕДЕНИЯ"
+                : objective == null ? "РАСКОЛ" : fit(font, objective.getDisplayName().getString(), width - 16);
+        graphics.centeredText(font, heading, x + width / 2, y + 5, TITLE);
+        graphics.fill(x + PANEL_PADDING, y + 17, x + width - PANEL_PADDING, y + 18, DIVIDER);
 
-        int rowY = y + 27;
-        for (PlayerScoreEntry row : rows) {
-            Component label = row.display() != null ? row.display() : row.ownerName();
-            Component score = row.formatValue(objective.numberFormat());
-
-            graphics.text(font, label, x + PANEL_PADDING, rowY, TEXT);
-
-            int scoreWidth = font.width(score);
-            graphics.text(
-                    font,
-                    score,
-                    x + width - PANEL_PADDING - scoreWidth,
-                    rowY,
-                    VALUE);
-
+        int rowY = y + 23;
+        for (Row row : rows) {
+            graphics.text(font, fit(font, row.label(), 58), x + PANEL_PADDING, rowY, TEXT);
+            String value = fit(font, row.value(), width - PANEL_PADDING * 2 - 61);
+            graphics.text(font, value, x + width - PANEL_PADDING - font.width(value), rowY, VALUE);
             rowY += ROW_HEIGHT;
         }
+    }
+
+    private static boolean isDuplicateLabel(String label, RaskolHudSnapshot state) {
+        String normalized = label.toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{L}\\p{N}]", "");
+        if (normalized.isBlank() || DUPLICATE_LABELS.stream().anyMatch(normalized::contains)) {
+            return true;
+        }
+        return (!state.factionName().isBlank()
+                        && (normalized.contains("фракц") || normalized.contains("корон")))
+                || (!state.titleName().isBlank() && normalized.contains("титул"));
+    }
+
+    private static String fit(Font font, String value, int maxWidth) {
+        if (value == null || maxWidth <= 0) {
+            return "";
+        }
+        if (font.width(value) <= maxWidth) {
+            return value;
+        }
+        String candidate = value;
+        while (!candidate.isEmpty() && font.width(candidate + "…") > maxWidth) {
+            candidate = candidate.substring(0, candidate.length() - 1);
+        }
+        return candidate.isEmpty() ? "" : candidate + "…";
     }
 
     private static void drawPanel(
@@ -115,15 +162,12 @@ public final class RaskolScoreboardRenderer {
             int width,
             int height) {
 
-        graphics.fill(x + 2, y + 3, x + width + 2, y + height + 3, SHADOW);
+        graphics.fill(x + 1, y + 2, x + width + 1, y + height + 2, SHADOW);
         graphics.fill(x, y, x + width, y + height, PANEL);
         graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, INNER);
-
-        graphics.fill(x + 7, y, x + width - 7, y + 1, EDGE);
-        graphics.fill(x, y + 7, x + 1, y + height - 7, EDGE_DARK);
-        graphics.fill(x + width - 1, y + 7, x + width, y + height - 7, EDGE_DARK);
-        graphics.fill(x + 7, y + height - 1, x + width - 7, y + height, EDGE_DARK);
-
-        graphics.fill(x + 8, y + 3, x + width - 8, y + 4, 0x554D372C);
+        graphics.fill(x + 6, y, x + width - 6, y + 1, EDGE);
+        graphics.fill(x, y + 6, x + 1, y + height - 6, EDGE_DARK);
+        graphics.fill(x + width - 1, y + 6, x + width, y + height - 6, EDGE_DARK);
+        graphics.fill(x + 6, y + height - 1, x + width - 6, y + height, EDGE_DARK);
     }
 }
