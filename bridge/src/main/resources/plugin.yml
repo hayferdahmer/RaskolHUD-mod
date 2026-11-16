@@ -1,0 +1,9 @@
+name: RaskolHUDBridge
+version: ${version}
+main: dev.raskol.hud.bridge.RaskolHudBridgePlugin
+api-version: '26.2'
+author: hayferdahmer
+description: Sends the current player's RaskolClasses snapshot to RaskolHUD.
+depend:
+  - PlaceholderAPI
+  - RaskolClasses
