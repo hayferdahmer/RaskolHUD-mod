@@ -21,14 +21,14 @@ processResources {
     }
 }
 
-def protocolJar = project(":protocol").tasks.named("jar")
-
 tasks.named("jar") {
-    dependsOn(protocolJar)
+    dependsOn(":protocol:jar")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from({
-        zipTree(protocolJar.get().archiveFile.get().asFile)
-    })
+    from {
+        configurations.runtimeClasspath
+                .findAll { it.name.startsWith("protocol-") }
+                .collect { zipTree(it) }
+    }
 }
 
 java {
