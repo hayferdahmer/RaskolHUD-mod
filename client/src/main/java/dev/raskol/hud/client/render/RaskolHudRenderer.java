@@ -29,6 +29,7 @@ public final class RaskolHudRenderer {
     private static final int ARMOR = 0xFF8E9AA8;
     private static final int HUNGER = 0xFFC18A4E;
     private static final int TRACK = 0xFF21191E;
+    private static final int DIVIDER = 0xFF493238;
     private static final int CONNECTION = 0xFFB58A62;
 
     private static final int IDENTITY_X = 12;
