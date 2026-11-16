@@ -4,6 +4,8 @@ import dev.raskol.hud.client.network.HelloPayload;
 import dev.raskol.hud.client.network.HudStateStore;
 import dev.raskol.hud.client.network.StatePayload;
 import dev.raskol.hud.client.render.RaskolHudRenderer;
+import dev.raskol.hud.client.render.RaskolHotbarRenderer;
+import dev.raskol.hud.client.render.RaskolCrosshairRenderer;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -37,6 +39,27 @@ public final class RaskolHudClient implements ClientModInitializer {
         hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.FOOD_BAR);
         hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.SCOREBOARD);
         hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.OVERLAY_MESSAGE);
+
+        HudElementRegistry.replaceElement(
+                VanillaHudElements.CROSSHAIR,
+                vanillaElement -> (graphics, deltaTracker) -> {
+                    var state = HudStateStore.current();
+                    if (state == null) {
+                        vanillaElement.extractRenderState(graphics, deltaTracker);
+                    } else {
+                        RaskolCrosshairRenderer.render(graphics, state);
+                    }
+                });
+
+        HudElementRegistry.replaceElement(
+                VanillaHudElements.HOTBAR,
+                vanillaElement -> (graphics, deltaTracker) -> {
+                    vanillaElement.extractRenderState(graphics, deltaTracker);
+                    var state = HudStateStore.current();
+                    if (state != null) {
+                        RaskolHotbarRenderer.render(graphics, state);
+                    }
+                });
 
         HudElementRegistry.attachElementAfter(
                 VanillaHudElements.BOSS_BAR,

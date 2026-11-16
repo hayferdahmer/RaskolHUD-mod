@@ -37,9 +37,9 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: raskolhud-0.2.0-java25-mc26.2
+          name: raskolhud-0.3.0-java25-mc26.2
           path: |
-            client/build/libs/raskolhud-client-0.2.0.jar
-            bridge/build/libs/raskolhud-bridge-0.2.0.jar
+            client/build/libs/raskolhud-client-0.3.0.jar
+            bridge/build/libs/raskolhud-bridge-0.3.0.jar
           if-no-files-found: error
           retention-days: 14

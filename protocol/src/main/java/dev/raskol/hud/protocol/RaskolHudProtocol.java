@@ -20,8 +20,9 @@ public final class RaskolHudProtocol {
 
     public static final String HELLO_CHANNEL = "raskolhud:hello";
     public static final String STATE_CHANNEL = "raskolhud:state";
-    public static final int PROTOCOL_VERSION = 2;
+    public static final int PROTOCOL_VERSION = 3;
     public static final int MAX_EFFECTS = 5;
+    public static final int MAX_COOLDOWNS = 9;
 
     private static final int MAGIC = 0x52534844;
     private static final int MAX_PACKET_BYTES = 4096;
@@ -64,6 +65,8 @@ public final class RaskolHudProtocol {
 
             writeEffects(out, snapshot.activeEffects());
             writeEffects(out, snapshot.damageOverTime());
+            writeEffects(out, snapshot.crowdControl());
+            writeCooldowns(out, snapshot.cooldowns());
         }
 
         byte[] packet = bytes.toByteArray();
@@ -103,6 +106,8 @@ public final class RaskolHudProtocol {
 
             List<RaskolHudEffect> activeEffects = readEffects(in);
             List<RaskolHudEffect> damageOverTime = readEffects(in);
+            List<RaskolHudEffect> crowdControl = readEffects(in);
+            List<RaskolHudCooldown> cooldowns = readCooldowns(in);
 
             if (in.available() != 0) {
                 throw new IOException("Unexpected trailing bytes in RaskolHUD packet");
@@ -121,7 +126,9 @@ public final class RaskolHudProtocol {
                     resource,
                     resourceMax,
                     activeEffects,
-                    damageOverTime);
+                    damageOverTime,
+                    crowdControl,
+                    cooldowns);
         } catch (EOFException exception) {
             throw new IOException("Truncated RaskolHUD packet", exception);
         }
@@ -166,6 +173,40 @@ public final class RaskolHudProtocol {
                     id, displayName, symbol, remainingSeconds, durationSeconds, stacks, harmful));
         }
         return List.copyOf(effects);
+    }
+
+    private static void writeCooldowns(DataOutputStream out, List<RaskolHudCooldown> cooldowns) throws IOException {
+        int count = cooldowns == null ? 0 : Math.min(MAX_COOLDOWNS, cooldowns.size());
+        out.writeByte(count);
+        for (int i = 0; i < count; i++) {
+            RaskolHudCooldown cooldown = cooldowns.get(i);
+            out.writeByte(cooldown.slot());
+            writeString(out, cooldown.abilityId());
+            out.writeInt(cooldown.remainingMillis());
+            out.writeInt(cooldown.durationMillis());
+        }
+    }
+
+    private static List<RaskolHudCooldown> readCooldowns(DataInputStream in) throws IOException {
+        int count = in.readUnsignedByte();
+        if (count > MAX_COOLDOWNS) {
+            throw new IOException("Too many RaskolHUD ability cooldowns: " + count);
+        }
+        boolean[] occupiedSlots = new boolean[9];
+        List<RaskolHudCooldown> cooldowns = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            int slot = in.readUnsignedByte();
+            String abilityId = readString(in);
+            int remainingMillis = in.readInt();
+            int durationMillis = in.readInt();
+            if (slot > 8 || occupiedSlots[slot] || remainingMillis < 0
+                    || durationMillis < remainingMillis || durationMillis > 86_400_000) {
+                throw new IOException("Invalid RaskolHUD ability cooldown values");
+            }
+            occupiedSlots[slot] = true;
+            cooldowns.add(new RaskolHudCooldown(slot, abilityId, remainingMillis, durationMillis));
+        }
+        return List.copyOf(cooldowns);
     }
 
     private static void writeString(DataOutputStream out, String value) throws IOException {

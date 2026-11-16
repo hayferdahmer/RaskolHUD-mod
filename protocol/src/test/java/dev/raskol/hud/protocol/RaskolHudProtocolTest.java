@@ -27,7 +27,9 @@ final class RaskolHudProtocolTest {
                 68,
                 120,
                 List.of(new RaskolHudEffect("shield_wall", "Стальная кожа", "🛡", 4, 5, 1, false)),
-                List.of(new RaskolHudEffect("bleed", "Кровотечение", "⚔", 3, 4, 2, true)));
+                List.of(new RaskolHudEffect("bleed", "Кровотечение", "⚔", 3, 4, 2, true)),
+                List.of(new RaskolHudEffect("STUN", "Оцепенение", "✣", 2, 3, 1, true)),
+                List.of(new RaskolHudCooldown(2, "shield_bash", 1500, 8000)));
 
         assertEquals(expected, RaskolHudProtocol.decode(RaskolHudProtocol.encode(expected)));
     }
@@ -63,7 +65,7 @@ final class RaskolHudProtocolTest {
     void constructorClampsValuesToKnownServerMaximums() {
         RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
                 1L, "rogue", "Разбойник", "Скрытность", "Энергия", "☠",
-                -2, 999, 100, 999, 120, List.of(), List.of());
+                -2, 999, 100, 999, 120, List.of(), List.of(), List.of(), List.of());
 
         assertEquals(0, snapshot.characterLevel());
         assertEquals(100, snapshot.health());
@@ -74,7 +76,7 @@ final class RaskolHudProtocolTest {
     void constructorPreservesResourceWhenServerMaximumIsUnknown() {
         RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
                 1L, "warrior", "Воин", "", "Ярость", "⚔",
-                20, 100, 100, 68, 0, List.of(), List.of());
+                20, 100, 100, 68, 0, List.of(), List.of(), List.of(), List.of());
 
         assertEquals(68, snapshot.resource());
         assertEquals(0, snapshot.resourceMax());
@@ -89,10 +91,20 @@ final class RaskolHudProtocolTest {
 
         RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
                 1L, "mage", "Маг", "", "Мана", "✦",
-                30, 100, 100, 20, 100, tooMany, tooMany);
+                30, 100, 100, 20, 100, tooMany, tooMany, tooMany, List.of());
 
         assertEquals(RaskolHudProtocol.MAX_EFFECTS, snapshot.activeEffects().size());
         assertEquals(RaskolHudProtocol.MAX_EFFECTS, snapshot.damageOverTime().size());
+        assertEquals(RaskolHudProtocol.MAX_EFFECTS, snapshot.crowdControl().size());
+    }
+
+    @Test
+    void cooldownSnapshotKeepsTheOriginalHotbarSlotAndTimers() throws Exception {
+        RaskolHudSnapshot value = new RaskolHudSnapshot(
+                1L, "rogue", "Разбойник", "", "Энергия", "☠",
+                30, 100, 100, 20, 100, List.of(), List.of(), List.of(),
+                List.of(new RaskolHudCooldown(7, "kick", 1250, 5000)));
+        assertEquals(value, RaskolHudProtocol.decode(RaskolHudProtocol.encode(value)));
     }
 
     @Test
@@ -103,6 +115,6 @@ final class RaskolHudProtocolTest {
     private static RaskolHudSnapshot snapshot() {
         return new RaskolHudSnapshot(
                 1L, "mage", "Маг", "Лёд", "Мана", "✦",
-                40, 500, 600, 40, 100, List.of(), List.of());
+                40, 500, 600, 40, 100, List.of(), List.of(), List.of(), List.of());
     }
 }

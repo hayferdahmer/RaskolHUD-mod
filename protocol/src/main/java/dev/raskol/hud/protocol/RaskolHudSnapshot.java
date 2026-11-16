@@ -22,7 +22,9 @@ public record RaskolHudSnapshot(
         int resource,
         int resourceMax,
         List<RaskolHudEffect> activeEffects,
-        List<RaskolHudEffect> damageOverTime) {
+        List<RaskolHudEffect> damageOverTime,
+        List<RaskolHudEffect> crowdControl,
+        List<RaskolHudCooldown> cooldowns) {
 
     public RaskolHudSnapshot {
         classId = safe(classId);
@@ -39,6 +41,8 @@ public record RaskolHudSnapshot(
 
         activeEffects = safeEffects(activeEffects);
         damageOverTime = safeEffects(damageOverTime);
+        crowdControl = safeEffects(crowdControl);
+        cooldowns = safeCooldowns(cooldowns);
     }
 
     private static String safe(String value) {
@@ -52,6 +56,16 @@ public record RaskolHudSnapshot(
         return effects.stream()
                 .filter(Objects::nonNull)
                 .limit(RaskolHudProtocol.MAX_EFFECTS)
+                .toList();
+    }
+
+    private static List<RaskolHudCooldown> safeCooldowns(List<RaskolHudCooldown> cooldowns) {
+        if (cooldowns == null || cooldowns.isEmpty()) {
+            return List.of();
+        }
+        return cooldowns.stream()
+                .filter(Objects::nonNull)
+                .limit(RaskolHudProtocol.MAX_COOLDOWNS)
                 .toList();
     }
 

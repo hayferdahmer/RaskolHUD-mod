@@ -19,8 +19,10 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.inventory.ItemStack;
 
 import dev.raskol.hud.protocol.RaskolHudEffect;
+import dev.raskol.hud.protocol.RaskolHudCooldown;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -103,7 +105,9 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
                     readInt(player, "resource"),
                     resourceMax(player.getUniqueId()),
                     activeEffects(player.getUniqueId()),
-                    activeDamageOverTime(player.getUniqueId()));
+                    activeDamageOverTime(player.getUniqueId()),
+                    activeCrowdControl(player.getUniqueId()),
+                    cooldowns(player));
 
             player.sendPluginMessage(this, RaskolHudProtocol.STATE_CHANNEL, RaskolHudProtocol.encode(snapshot));
         } catch (IOException | RuntimeException exception) {
@@ -228,6 +232,114 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
             warnOptionalApi("Could not read active RaskolClasses damage-over-time states", exception);
             return List.of();
         }
+    }
+
+    private List<RaskolHudEffect> activeCrowdControl(UUID playerId) {
+        try {
+            Object manager = invoke(raskolClasses, "getCC");
+            Object value = invoke(manager, "activeOf", new Class<?>[] {UUID.class}, playerId);
+            if (!(value instanceof List<?> active) || active.isEmpty()) {
+                return List.of();
+            }
+
+            long now = System.currentTimeMillis();
+            List<RaskolHudEffect> result = new ArrayList<>();
+            for (Object instance : active) {
+                if (result.size() >= RaskolHudProtocol.MAX_EFFECTS) {
+                    break;
+                }
+                Object type = invoke(instance, "type");
+                String id = stringValue(invoke(type, "id"));
+                String displayName = stringValue(invoke(type, "ruName"));
+                long startedAt = ((Number) invoke(instance, "startedAt")).longValue();
+                long expiresAt = ((Number) invoke(instance, "expiresAt")).longValue();
+                long remainingMillis = expiresAt - now;
+                if (remainingMillis <= 0L || displayName.isBlank()) {
+                    continue;
+                }
+                int remaining = (int) Math.min(86_400L, (remainingMillis + 999L) / 1000L);
+                int duration = (int) Math.min(86_400L, Math.max(1L, (expiresAt - startedAt + 999L) / 1000L));
+                result.add(new RaskolHudEffect(
+                        id, displayName, crowdControlSymbol(id), remaining, duration, 1, true));
+            }
+            return List.copyOf(result);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read active RaskolClasses crowd-control states", exception);
+            return List.of();
+        }
+    }
+
+    private List<RaskolHudCooldown> cooldowns(Player player) {
+        try {
+            Object classProvider = invoke(raskolClasses, "getClassProvider");
+            Object playerClass = invoke(classProvider, "getClassOf", new Class<?>[] {Player.class}, player);
+            if (playerClass == null) {
+                return List.of();
+            }
+
+            Object tokens = invoke(raskolClasses, "getTokens");
+            Object cooldownManager = invoke(raskolClasses, "getCooldowns");
+            Object abilities = invoke(raskolClasses, "getAbilities");
+            List<RaskolHudCooldown> result = new ArrayList<>();
+
+            for (int slot = 0; slot < 9; slot++) {
+                ItemStack item = player.getInventory().getItem(slot);
+                if (item == null || item.getType().isAir()) {
+                    continue;
+                }
+                String abilityId = stringValue(invoke(
+                        tokens, "readId", new Class<?>[] {ItemStack.class}, item));
+                if (abilityId.isBlank()) {
+                    continue;
+                }
+                long remaining = ((Number) invoke(
+                        cooldownManager,
+                        "getRemainingMillis",
+                        new Class<?>[] {UUID.class, String.class},
+                        player.getUniqueId(),
+                        abilityId)).longValue();
+                if (remaining <= 0L) {
+                    continue;
+                }
+
+                long duration = remaining;
+                Object definition = invoke(
+                        abilities,
+                        "findById",
+                        new Class<?>[] {playerClass.getClass(), String.class},
+                        playerClass,
+                        abilityId);
+                if (definition != null) {
+                    Object configuredDuration = invoke(definition, "cooldownMillis");
+                    if (configuredDuration instanceof Number number && number.longValue() > 0L) {
+                        duration = number.longValue();
+                    }
+                }
+                result.add(new RaskolHudCooldown(
+                        slot,
+                        abilityId,
+                        (int) Math.min(86_400_000L, remaining),
+                        (int) Math.min(86_400_000L, duration)));
+            }
+            return List.copyOf(result);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            warnOptionalApi("Could not read RaskolClasses hotbar cooldowns", exception);
+            return List.of();
+        }
+    }
+
+    private static String crowdControlSymbol(String id) {
+        return switch (id.toUpperCase(java.util.Locale.ROOT)) {
+            case "STUN" -> "✣";
+            case "ROOT" -> "⌘";
+            case "SILENCE" -> "◖";
+            case "DISARM" -> "⚔";
+            case "FEAR" -> "☠";
+            case "CHARM" -> "◇";
+            case "SLOW" -> "⌛";
+            case "BLIND" -> "◉";
+            default -> "!";
+        };
     }
 
     private static Object invoke(Object target, String methodName) throws ReflectiveOperationException {
