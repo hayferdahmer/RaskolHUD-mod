@@ -1,0 +1,46 @@
+name: RaskolHUD build
+
+on:
+  push:
+    branches:
+      - main
+      - feat/raskolhud-foundation
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Java 25 / Minecraft 26.2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle 9.5.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.5.1"
+
+      - name: Run protocol tests and build modules
+        run: gradle :protocol:test :client:build :bridge:build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: raskolhud-0.1.0-java25-mc26.2
+          path: |
+            client/build/libs/raskolhud-client-0.1.0.jar
+            bridge/build/libs/raskolhud-bridge-0.1.0.jar
+          if-no-files-found: error
+          retention-days: 14
