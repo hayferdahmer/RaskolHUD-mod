@@ -31,8 +31,17 @@ public final class RaskolHudClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> HudStateStore.clear());
 
+        // Ванильные сердца скрываются только при наличии свежего снимка от RASKOL.
+        HudElementRegistry.replaceElement(
+                VanillaHudElements.HEALTH_BAR,
+                vanillaHealth -> (graphics, deltaTracker) -> {
+                    if (HudStateStore.current() == null) {
+                        vanillaHealth.extractRenderState(graphics, deltaTracker);
+                    }
+                });
+
         HudElementRegistry.attachElementAfter(
-                VanillaHudElements.MISC_OVERLAYS,
+                VanillaHudElements.BOSS_BAR,
                 Identifier.fromNamespaceAndPath("raskolhud", "main"),
                 RaskolHudRenderer::render);
     }
