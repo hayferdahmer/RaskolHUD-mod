@@ -30,16 +30,19 @@ public record RaskolHudSnapshot(
 
         characterLevel = Math.max(0, characterLevel);
         healthMax = Math.max(0, healthMax);
-        health = clamp(health, healthMax);
+        health = clampKnownMaximum(health, healthMax);
         resourceMax = Math.max(0, resourceMax);
-        resource = clamp(resource, resourceMax);
+        resource = clampKnownMaximum(resource, resourceMax);
     }
 
     private static String safe(String value) {
         return Objects.requireNonNullElse(value, "");
     }
 
-    private static int clamp(int value, int maximum) {
+    private static int clampKnownMaximum(int value, int maximum) {
+        if (maximum <= 0) {
+            return Math.max(0, value);
+        }
         return Math.max(0, Math.min(value, maximum));
     }
 }
