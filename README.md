@@ -1,7 +1,9 @@
 # RaskolHUD
 
 История изменений и чек-лист приёмки: [CHANGELOG.md](CHANGELOG.md).  
-План разработки до 1.0.0: [ROADMAP_1.0.0.md](ROADMAP_1.0.0.md).
+План разработки до 1.0.0: [ROADMAP_1.0.0.md](ROADMAP_1.0.0.md).  
+Полная матрица приёмки: [docs/ACCEPTANCE_1.0.0.md](docs/ACCEPTANCE_1.0.0.md).  
+Описание бинарного протокола: [docs/PROTOCOL_V7.md](docs/PROTOCOL_V7.md).
 
 Клиентский HUD-мод для сервера «РАСКОЛ | ДВЕ КОРОНЫ».
 
