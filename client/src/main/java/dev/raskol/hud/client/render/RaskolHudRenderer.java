@@ -286,7 +286,7 @@ public final class RaskolHudRenderer {
         drawFrame(graphics, x, y, width, STATUS_HEIGHT, withAlpha(theme.accent(), 220));
         fill(graphics, x + half, y + 8, x + half + 1, y + STATUS_HEIGHT - 8, DIVIDER);
         // Настоящий герб двух корон — центральный знак интерфейса РАСКОЛ.
-        RaskolHudTextureRenderer.renderRaskolCrest(graphics, x + half - 17, y - 13, 34, 36, 100);
+        RaskolHudTextureRenderer.renderRaskolCrest(graphics, x + half - 13, y - 27, 26, 27, activeOpacity);
         fill(graphics, x + half - 5, y + 8, x + half + 6, y + 9, withAlpha(theme.highlight(), 150));
 
         String healthValue = NUMBER_FORMAT.format(state.health()) + "/" + NUMBER_FORMAT.format(state.healthMax());

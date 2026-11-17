@@ -8,6 +8,7 @@ import dev.raskol.hud.client.network.HudStateStore;
 import dev.raskol.hud.client.network.StatePayload;
 import dev.raskol.hud.client.render.RaskolHudRenderer;
 import dev.raskol.hud.client.render.RaskolHotbarRenderer;
+import dev.raskol.hud.client.render.RaskolHudMotion;
 import dev.raskol.hud.client.render.RaskolCrosshairRenderer;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import net.fabricmc.api.ClientModInitializer;
@@ -50,12 +51,14 @@ public final class RaskolHudClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             HudStateStore.clear();
+            RaskolHudMotion.reset();
             CrosshairSignalPayload.clear();
             ClientPlayNetworking.send(new HelloPayload(RaskolHudProtocol.PROTOCOL_VERSION));
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             HudStateStore.clear();
+            RaskolHudMotion.reset();
             CrosshairSignalPayload.clear();
         });
 

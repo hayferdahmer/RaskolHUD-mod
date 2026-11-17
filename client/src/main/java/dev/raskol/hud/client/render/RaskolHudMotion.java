@@ -41,6 +41,12 @@ public final class RaskolHudMotion {
         return new BarFrame(state.displayed, state.damageTrail, damageAlpha, pulse);
     }
 
+    public static synchronized void reset() {
+        BARS.clear();
+        selectedSlot = -1;
+        selectedSlotChangedAt = 0L;
+    }
+
     public static synchronized float selectedSlotPulse(int currentSlot) {
         long now = System.currentTimeMillis();
         if (selectedSlot != currentSlot) {
