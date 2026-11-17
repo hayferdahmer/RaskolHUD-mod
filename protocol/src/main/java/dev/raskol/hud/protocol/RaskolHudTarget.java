@@ -20,8 +20,10 @@ public record RaskolHudTarget(
         className = safe(className);
         level = Math.max(0, Math.min(60, level));
         healthMax = finiteNonNegative(healthMax);
-        health = Math.max(0, Math.min(healthMax > 0 ? healthMax : Double.MAX_VALUE,
-                finiteNonNegative(health)));
+        health = healthMax > 0 ? Math.min(healthMax, finiteNonNegative(health)) : 0;
+        if (available && name.isBlank()) {
+            available = false;
+        }
         if (!available) {
             player = false;
             name = "";
