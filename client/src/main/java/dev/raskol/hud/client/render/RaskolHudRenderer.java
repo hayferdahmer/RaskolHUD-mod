@@ -47,7 +47,7 @@ public final class RaskolHudRenderer {
     private static final int STATS_WIDTH = 154;
     private static final int TARGET_WIDTH = 168;
     private static final int STATUS_HEIGHT = 44;
-    private static final int HOTBAR_GAP = 22;
+    private static final int HOTBAR_GAP = 40;
 
     private static final NumberFormat NUMBER_FORMAT =
             NumberFormat.getIntegerInstance(Locale.forLanguageTag("ru-RU"));
@@ -286,9 +286,7 @@ public final class RaskolHudRenderer {
 
         drawFrame(graphics, x, y, width, STATUS_HEIGHT, withAlpha(theme.accent(), 220));
         fill(graphics, x + half, y + 8, x + half + 1, y + STATUS_HEIGHT - 8, DIVIDER);
-        // Настоящий герб двух корон — центральный знак интерфейса РАСКОЛ.
-        RaskolHudTextureRenderer.renderRaskolCrest(graphics, x + half - 13, y - 27, 26, 27, activeOpacity);
-        fill(graphics, x + half - 5, y + 8, x + half + 6, y + 9, withAlpha(theme.highlight(), 150));
+        // Центральная ось остаётся чистой: разделение шкал задаётся общей рамкой.
 
         String healthValue = NUMBER_FORMAT.format(state.health()) + "/" + NUMBER_FORMAT.format(state.healthMax());
         text(graphics, font, "ЗДОРОВЬЕ", left, y + 6, 0xFFE1B9A6);
