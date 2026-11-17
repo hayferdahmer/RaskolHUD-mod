@@ -27,5 +27,6 @@
   "raskolhud.config.opacity": "Opacity: %s%%",
   "raskolhud.config.reset_position": "Reset position",
   "raskolhud.config.reset_all": "Reset all",
-  "raskolhud.config.done": "Done"
+  "raskolhud.config.done": "Done",
+  "raskolhud.config.panel.scoreboard": "Scoreboard / faction"
 }
