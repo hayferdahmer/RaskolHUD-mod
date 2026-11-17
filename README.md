@@ -78,7 +78,7 @@
 
 ## Что проверить в первом запуске
 
-Полный чек-лист приёмки 0.6.0 находится в [CHANGELOG.md](CHANGELOG.md). В первую очередь проверь:
+Полный чек-лист приёмки этапов 0.6.0–0.9.0 находится в [CHANGELOG.md](CHANGELOG.md). В первую очередь проверь:
 
 - Появляются ли класс, специализация и уровень персонажа; совпадают ли здоровье и ресурс с серверными данными.
 - Возвращаются ли ванильные полосы здоровья, брони и голода при отключении соответствующей панели.
@@ -117,8 +117,8 @@ gradle :protocol:test :client:build :bridge:build
 ```
 
 Артефакты:
-- `client/build/libs/raskolhud-client-0.7.0-SNAPSHOT.jar`
-- `bridge/build/libs/raskolhud-bridge-0.7.0-SNAPSHOT.jar`
+- `client/build/libs/raskolhud-client-0.9.0-SNAPSHOT.jar`
+- `bridge/build/libs/raskolhud-bridge-0.9.0-SNAPSHOT.jar`
 
 ## Статус
 
