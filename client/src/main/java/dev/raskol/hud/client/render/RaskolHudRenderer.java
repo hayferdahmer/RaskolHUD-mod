@@ -20,6 +20,7 @@ import net.minecraft.world.food.FoodData;
 
 public final class RaskolHudRenderer {
 
+    private static int activeOpacity = 100;
     private static final int SHADOW = 0x45000000;
     private static final int FRAME = 0x98100D12;
     private static final int INNER = 0x9D19151A;
@@ -67,19 +68,19 @@ public final class RaskolHudRenderer {
         graphics.pose().translate((float) (centerX * (1.0D - scale)), (float) (centerY * (1.0D - scale)));
         graphics.pose().scale((float) scale, (float) scale);
         if (HudConfig.showIdentity()) {
-            drawAtOffset(graphics, HudConfig.identityX(), HudConfig.identityY(),
+            drawAtOffset(graphics, HudConfig.identityX(), HudConfig.identityY(), HudConfig.opacity("identity"),
                     () -> drawIdentity(graphics, font, player, state));
         }
         if (HudConfig.showConnection()) {
-            drawAtOffset(graphics, HudConfig.connectionX(), HudConfig.connectionY(),
+            drawAtOffset(graphics, HudConfig.connectionX(), HudConfig.connectionY(), HudConfig.opacity("connection"),
                     () -> drawConnection(graphics, font, graphics.guiWidth()));
         }
         if (HudConfig.showStatus()) {
-            drawAtOffset(graphics, HudConfig.statusX(), HudConfig.statusY(),
+            drawAtOffset(graphics, HudConfig.statusX(), HudConfig.statusY(), HudConfig.opacity("status"),
                     () -> drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight()));
         }
         if (HudConfig.showEffects()) {
-            drawAtOffset(graphics, HudConfig.effectsX(), HudConfig.effectsY(),
+            drawAtOffset(graphics, HudConfig.effectsX(), HudConfig.effectsY(), HudConfig.opacity("effects"),
                     () -> drawCrowdControl(graphics, font, state, graphics.guiWidth(),
                             graphics.guiHeight() - HOTBAR_GAP - STATUS_HEIGHT - 19));
         }
@@ -89,11 +90,29 @@ public final class RaskolHudRenderer {
         graphics.pose().popMatrix();
     }
 
-    private static void drawAtOffset(GuiGraphicsExtractor graphics, int x, int y, Runnable render) {
+    private static void drawAtOffset(GuiGraphicsExtractor graphics, int x, int y, int opacity, Runnable render) {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
+        int previousOpacity = activeOpacity;
+        activeOpacity = opacity;
         render.run();
+        activeOpacity = previousOpacity;
         graphics.pose().popMatrix();
+    }
+
+    private static int applyOpacity(int color) {
+        int alpha = (color >>> 24) * activeOpacity / 100;
+        return (color & 0x00FFFFFF) | (alpha << 24);
+    }
+
+    private static void fill(
+            GuiGraphicsExtractor graphics, int x1, int y1, int x2, int y2, int color) {
+        graphics.fill(x1, y1, x2, y2, applyOpacity(color));
+    }
+
+    private static void text(
+            GuiGraphicsExtractor graphics, Font font, String value, int x, int y, int color) {
+        graphics.text(font, value, x, y, applyOpacity(color));
     }
 
     private static void drawIdentity(
@@ -111,7 +130,7 @@ public final class RaskolHudRenderer {
         drawPlayerHead(graphics, player, x + 8, y + 8, theme);
 
         String nickname = fit(font, player.getName().getString(), 132);
-        graphics.text(font, nickname, x + 42, y + 7, TEXT);
+        text(graphics, font, nickname, x + 42, y + 7, TEXT);
         drawRightAligned(
                 graphics,
                 font,
@@ -138,7 +157,7 @@ public final class RaskolHudRenderer {
             int y,
             RaskolClassTheme theme) {
 
-        graphics.fill(x - 2, y - 2, x + 26, y + 26, SHADOW);
+        fill(graphics, x - 2, y - 2, x + 26, y + 26, SHADOW);
         graphics.fill(x - 1, y - 1, x + 25, y + 25, withAlpha(theme.muted(), 210));
         graphics.fill(x, y, x + 24, y + 24, 0xFF171319);
 
