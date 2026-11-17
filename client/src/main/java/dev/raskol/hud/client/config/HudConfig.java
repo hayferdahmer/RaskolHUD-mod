@@ -38,7 +38,7 @@ public final class HudConfig {
     private static int statusOpacity = 100;
     private static int effectsOpacity = 100;
     private static int connectionOpacity = 100;
-    private static int combatStatsOpacity = targetOpacity = 100;
+    private static int combatStatsOpacity = 100;
     private static int targetOpacity = 100;
 
     private HudConfig() {}
@@ -229,7 +229,7 @@ public final class HudConfig {
             case "status" -> { statusX = 0; statusY = 0; }
             case "effects" -> { effectsX = 0; effectsY = 0; }
             case "connection" -> { connectionX = 0; connectionY = 0; }
-            case "combatStats" -> { combatStatsX = targetX = targetY = 0; combatStatsY = 0; }
+            case "combatStats" -> { combatStatsX = 0; combatStatsY = 0; }
             case "target" -> { targetX = 0; targetY = 0; }
             default -> { return; }
         }
@@ -279,9 +279,10 @@ public final class HudConfig {
         showCombatStats = true;
         showTarget = true;
         scale = 1.0D;
-        identityX = identityY = statusX = statusY = effectsX = effectsY = connectionX = connectionY = combatStatsX = 0;
+        identityX = identityY = statusX = statusY = effectsX = effectsY = connectionX = connectionY = 0;
+        combatStatsX = combatStatsY = targetX = targetY = 0;
         combatStatsY = 0;
-        identityOpacity = statusOpacity = effectsOpacity = connectionOpacity = combatStatsOpacity = 100;
+        identityOpacity = statusOpacity = effectsOpacity = connectionOpacity = combatStatsOpacity = targetOpacity = 100;
         save();
     }
 }
