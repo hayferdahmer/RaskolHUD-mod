@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feat/1.1.0-gothic-visual-overhaul
   pull_request:
     branches:
       - main
@@ -37,9 +38,9 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: raskolhud-1.0.0-rc.1-java25-mc26.2
+          name: raskolhud-1.1.0-java25-mc26.2
           path: |
-            client/build/libs/raskolhud-client-1.0.0-rc.1.jar
-            bridge/build/libs/raskolhud-bridge-1.0.0-rc.1.jar
+            client/build/libs/raskolhud-client-1.1.0.jar
+            bridge/build/libs/raskolhud-bridge-1.1.0.jar
           if-no-files-found: error
           retention-days: 14

@@ -148,10 +148,10 @@ public final class RaskolHudRenderer {
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
         drawFrame(graphics, x, y, IDENTITY_WIDTH, IDENTITY_HEIGHT, withAlpha(theme.accent(), 190));
-        drawPlayerHead(graphics, player, x + 8, y + 8, theme);
+        drawPlayerHead(graphics, player, x + 5, y + 5, theme);
 
         String nickname = fit(font, player.getName().getString(), 132);
-        text(graphics, font, nickname, x + 42, y + 7, TEXT);
+        text(graphics, font, nickname, x + 45, y + 7, TEXT);
         drawRightAligned(
                 graphics,
                 font,
@@ -162,10 +162,10 @@ public final class RaskolHudRenderer {
 
         String className = displayOr(state.className(), "Без класса");
         String specialization = state.specializationName();
-        text(graphics, font, fit(font, className, 92), x + 42, y + 23, theme.highlight());
+        text(graphics, font, fit(font, className, 92), x + 45, y + 23, theme.highlight());
         if (!specialization.isBlank()) {
             String specText = " (" + specialization + ")";
-            int specX = x + 42 + font.width(className);
+            int specX = x + 45 + font.width(className);
             int available = right - 8 - specX;
             text(graphics, font, fit(font, specText, Math.max(0, available)), specX, y + 23, SECONDARY);
         }
@@ -237,23 +237,32 @@ public final class RaskolHudRenderer {
             int y,
             RaskolClassTheme theme) {
 
-        fill(graphics, x - 2, y - 2, x + 26, y + 26, SHADOW);
-        fill(graphics, x - 1, y - 1, x + 25, y + 25, withAlpha(theme.muted(), 210));
-        fill(graphics, x, y, x + 24, y + 24, 0xFF171319);
+        fill(graphics, x - 2, y - 2, x + 30, y + 30, SHADOW);
+        fill(graphics, x - 1, y - 1, x + 29, y + 29, 0xFF050509);
+        fill(graphics, x, y, x + 28, y + 28, withAlpha(theme.muted(), 230));
+        fill(graphics, x + 1, y + 1, x + 27, y + 27, 0xFF171319);
+        fill(graphics, x + 2, y + 2, x + 26, y + 26, 0xFF79645A);
+        fill(graphics, x + 3, y + 3, x + 25, y + 25, 0xFF08070A);
 
         if (player instanceof AbstractClientPlayer clientPlayer) {
             var texture = clientPlayer.getSkin().body().texturePath();
             // Лицо и верхний слой берутся из актуальной текстуры скина игрока.
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture,
-                    x, y, 8.0F, 8.0F, 24, 24, 8, 8, 64, 64, applyOpacity(0xFFFFFFFF));
+                    x + 3, y + 3, 8.0F, 8.0F, 22, 22, 8, 8, 64, 64, applyOpacity(0xFFFFFFFF));
             graphics.blit(RenderPipelines.GUI_TEXTURED, texture,
-                    x, y, 40.0F, 8.0F, 24, 24, 8, 8, 64, 64, applyOpacity(0xFFFFFFFF));
+                    x + 3, y + 3, 40.0F, 8.0F, 22, 22, 8, 8, 64, 64, applyOpacity(0xFFFFFFFF));
         } else {
-            fill(graphics, x + 7, y + 7, x + 17, y + 17, theme.accent());
+            fill(graphics, x + 9, y + 9, x + 19, y + 19, theme.accent());
         }
 
-        fill(graphics, x - 1, y - 1, x + 25, y, withAlpha(theme.highlight(), 200));
-        fill(graphics, x - 1, y + 24, x + 25, y + 25, EDGE_DARK);
+        // Угловые заклёпки и руническая вставка завершают портретную оправу.
+        fill(graphics, x - 1, y - 1, x + 4, y, 0xFFD0B49A);
+        fill(graphics, x + 24, y - 1, x + 29, y, 0xFFD0B49A);
+        fill(graphics, x - 1, y + 28, x + 4, y + 29, 0xFF59423C);
+        fill(graphics, x + 24, y + 28, x + 29, y + 29, 0xFF59423C);
+        fill(graphics, x + 12, y - 1, x + 16, y + 1, withAlpha(HEALTH_HIGHLIGHT, 220));
+        fill(graphics, x + 12, y + 27, x + 16, y + 29, withAlpha(theme.highlight(), 220));
+        RaskolHudTextureRenderer.renderPortraitFrame(graphics, x - 2, y - 2, 32, 32, activeOpacity);
     }
 
     private static void drawBottomStatus(
@@ -277,14 +286,17 @@ public final class RaskolHudRenderer {
 
         drawFrame(graphics, x, y, width, STATUS_HEIGHT, withAlpha(theme.accent(), 220));
         fill(graphics, x + half, y + 8, x + half + 1, y + STATUS_HEIGHT - 8, DIVIDER);
+        // Настоящий герб двух корон — центральный знак интерфейса РАСКОЛ.
+        RaskolHudTextureRenderer.renderRaskolCrest(graphics, x + half - 13, y - 27, 26, 27, activeOpacity);
         fill(graphics, x + half - 5, y + 8, x + half + 6, y + 9, withAlpha(theme.highlight(), 150));
 
         String healthValue = NUMBER_FORMAT.format(state.health()) + "/" + NUMBER_FORMAT.format(state.healthMax());
         text(graphics, font, "ЗДОРОВЬЕ", left, y + 6, 0xFFE1B9A6);
         drawRightAligned(graphics, font, fit(font, healthValue, columnWidth - font.width("ЗДОРОВЬЕ")),
                 leftEdge, y + 6, TEXT);
-        drawBar(graphics, left, y + 20, columnWidth, 7,
-                state.health(), state.healthMax(), withAlpha(HEALTH, 220), HEALTH_HIGHLIGHT);
+        RaskolHudMotion.BarFrame healthMotion = RaskolHudMotion.sampleBar("health", state.health(), state.healthMax());
+        drawAnimatedBar(graphics, left, y + 20, columnWidth, 7,
+                withAlpha(HEALTH, 235), HEALTH_HIGHLIGHT, healthMotion);
 
         String resourceLabel = displayOr(state.resourceName(), "РЕСУРС").toUpperCase(Locale.ROOT);
         String resourceValue = state.resourceMax() > 0
@@ -293,13 +305,14 @@ public final class RaskolHudRenderer {
         String resourceTitle = (state.resourceSymbol().isBlank() ? "" : state.resourceSymbol() + " ")
                 + resourceLabel;
         text(graphics, font, fit(font, resourceTitle, columnWidth - font.width(resourceValue) - 4),
-                right, y + 6, RESOURCE_BLUE_HIGHLIGHT);
+                right, y + 6, theme.highlight());
         drawRightAligned(graphics, font, resourceValue, rightEdge, y + 6, TEXT);
         if (state.resourceMax() > 0) {
-            drawBar(graphics, right, y + 20, columnWidth, 7,
-                    state.resource(), state.resourceMax(), withAlpha(RESOURCE_BLUE, 235), RESOURCE_BLUE_HIGHLIGHT);
+            RaskolHudMotion.BarFrame resourceMotion = RaskolHudMotion.sampleBar("resource", state.resource(), state.resourceMax());
+            drawAnimatedBar(graphics, right, y + 20, columnWidth, 7,
+                    withAlpha(theme.accent(), 240), theme.highlight(), resourceMotion);
         } else {
-            drawDecorativeRule(graphics, right, y + 23, columnWidth, withAlpha(RESOURCE_BLUE, 220));
+            drawDecorativeRule(graphics, right, y + 23, columnWidth, withAlpha(theme.accent(), 220));
         }
 
         int armor = Math.max(0, player.getArmorValue());
@@ -371,37 +384,7 @@ public final class RaskolHudRenderer {
             int width,
             int height,
             int accent) {
-
-        // Тёмная подложка, двойная стальная окантовка и внутренний контур.
-        fill(graphics, x + 3, y + 3, x + width + 3, y + height + 3, SHADOW);
-        fill(graphics, x, y, x + width, y + height, 0xFF08090D);
-        fill(graphics, x + 1, y + 1, x + width - 1, y + height - 1, 0xFF75605A);
-        fill(graphics, x + 2, y + 2, x + width - 2, y + height - 2, FRAME);
-        fill(graphics, x + 4, y + 4, x + width - 4, y + height - 4, INNER);
-        fill(graphics, x + 7, y + 2, x + width - 7, y + 3, 0xFFD0B49A);
-        fill(graphics, x + 7, y + height - 3, x + width - 7, y + height - 2, EDGE_DARK);
-        fill(graphics, x + 2, y + 7, x + 3, y + height - 7, 0xFF80665A);
-        fill(graphics, x + width - 3, y + 7, x + width - 2, y + height - 7, EDGE_DARK);
-        fill(graphics, x + 8, y + 4, x + width - 8, y + 5, accent);
-        // Угловые шипы и заклёпки создают характерную готическую геометрию.
-        int corner = Math.min(7, Math.max(3, height / 4));
-        for (int side = 0; side < 2; side++) {
-            int cx = side == 0 ? x + 3 : x + width - 4;
-            fill(graphics, cx, y + 3, cx + 1, y + corner + 2, accent);
-            fill(graphics, cx, y + height - corner - 2, cx + 1, y + height - 3, accent);
-            fill(graphics, cx - 1, y + 3, cx + 2, y + 4, 0xFFE0C4A5);
-            fill(graphics, cx - 1, y + height - 4, cx + 2, y + height - 3, 0xFFE0C4A5);
-        }
-        drawGem(graphics, x + width / 2, y + 2, accent);
-        drawGem(graphics, x + 4, y + height / 2, accent);
-        drawGem(graphics, x + width - 4, y + height / 2, accent);
-    }
-
-    private static void drawGem(GuiGraphicsExtractor graphics, int cx, int cy, int accent) {
-        fill(graphics, cx - 3, cy - 1, cx + 4, cy + 2, 0xFF050509);
-        fill(graphics, cx - 2, cy - 2, cx + 3, cy + 3, accent);
-        fill(graphics, cx - 1, cy - 3, cx + 2, cy + 4, accent);
-        fill(graphics, cx - 1, cy - 1, cx + 1, cy + 1, 0xFFFFD8B0);
+        RaskolHudFrameRenderer.panel(graphics, x, y, width, height, accent, activeOpacity);
     }
 
     private static void drawConnection(GuiGraphicsExtractor graphics, Font font, int screenWidth) {
@@ -426,16 +409,54 @@ public final class RaskolHudRenderer {
         if (width <= 0 || height <= 0) {
             return;
         }
-        fill(graphics, x, y, x + width, y + height, TRACK);
+        // Утопленная шкала с металлической кромкой, тёмным желобом и бликом заполнения.
+        fill(graphics, x - 1, y - 1, x + width + 1, y + height + 1, 0xFF050509);
+        fill(graphics, x, y, x + width, y + height, 0xFF79645A);
+        fill(graphics, x + 1, y + 1, x + width - 1, y + height - 1, TRACK);
         if (maximum <= 0 || current <= 0) {
+            fill(graphics, x + 1, y + 1, x + width - 1, y + 2, 0x704C3D3A);
+            RaskolHudTextureRenderer.renderBarFrame(graphics, x - 1, y - 1, width + 2, height + 2, activeOpacity);
             return;
         }
         double fraction = Math.max(0.0, Math.min(1.0, (double) current / maximum));
-        int filledWidth = (int) Math.round(width * fraction);
+        int innerWidth = Math.max(0, width - 2);
+        int filledWidth = (int) Math.round(innerWidth * fraction);
         if (filledWidth > 0) {
-            fill(graphics, x, y, x + filledWidth, y + height, fillColor);
-            fill(graphics, x, y, x + filledWidth, y + 1, highlightColor);
+            fill(graphics, x + 1, y + 1, x + 1 + filledWidth, y + height - 1, fillColor);
+            fill(graphics, x + 1, y + 1, x + 1 + filledWidth, y + 2, highlightColor);
+            if (filledWidth > 8) {
+                fill(graphics, x + 3, y + height - 2, x + 1 + filledWidth - 2, y + height - 1,
+                        withAlpha(0xFF080609, 100));
+            }
         }
+        RaskolHudTextureRenderer.renderBarFrame(graphics, x - 1, y - 1, width + 2, height + 2, activeOpacity);
+    }
+
+    private static void drawAnimatedBar(
+            GuiGraphicsExtractor graphics, int x, int y, int width, int height,
+            int fillColor, int highlightColor, RaskolHudMotion.BarFrame motion) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        fill(graphics, x - 1, y - 1, x + width + 1, y + height + 1, 0xFF050509);
+        fill(graphics, x, y, x + width, y + height, 0xFF79645A);
+        fill(graphics, x + 1, y + 1, x + width - 1, y + height - 1, TRACK);
+        int innerWidth = Math.max(0, width - 2);
+        int filled = (int) Math.round(innerWidth * motion.fill());
+        int trail = (int) Math.round(innerWidth * motion.damageTrail());
+        if (trail > filled && motion.damageAlpha() > 0.0) {
+            fill(graphics, x + 1 + filled, y + 1, x + 1 + trail, y + height - 1,
+                    withAlpha(0xFFFF554D, (int) Math.round(150 * motion.damageAlpha())));
+        }
+        if (filled > 0) {
+            fill(graphics, x + 1, y + 1, x + 1 + filled, y + height - 1, fillColor);
+            fill(graphics, x + 1, y + 1, x + 1 + filled, y + 2, highlightColor);
+            if (motion.pulse() > 0.0) {
+                fill(graphics, x + 1, y + 1, x + 1 + filled, y + height - 1,
+                        withAlpha(0xFFFFFFFF, (int) Math.round(45 * motion.pulse())));
+            }
+        }
+        RaskolHudTextureRenderer.renderBarFrame(graphics, x - 1, y - 1, width + 2, height + 2, activeOpacity);
     }
 
     private static void drawDecorativeRule(
