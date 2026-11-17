@@ -24,6 +24,6 @@ public record RaskolHudEffect(
     }
 
     private static String safe(String value) {
-        return Objects.requireNonNullElse(value, "");
+        return RaskolHudText.limit(value);
     }
 }
