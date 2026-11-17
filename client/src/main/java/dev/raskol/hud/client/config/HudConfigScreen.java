@@ -7,13 +7,14 @@ import net.minecraft.network.chat.Component;
 
 /** Экран персонализации интерфейса РАСКОЛ. */
 public final class HudConfigScreen extends Screen {
-    private final Screen parent;
     private static final String[] MOVABLE_PANELS = {"identity", "status", "effects", "connection"};
     private static final String[] MOVABLE_LABELS = {"Персонаж", "Здоровье / ресурс", "Эффекты", "Связь"};
-    private int selectedPanel;
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 8;
     private static final int COLUMN_GAP = 12;
+
+    private final Screen parent;
+    private int selectedPanel;
 
     public HudConfigScreen(Screen parent) {
         super(Component.literal("Настройки RaskolHUD"));
@@ -26,7 +27,7 @@ public final class HudConfigScreen extends Screen {
         int totalWidth = buttonWidth * 2 + COLUMN_GAP;
         int left = (this.width - totalWidth) / 2;
         int right = left + buttonWidth + COLUMN_GAP;
-        int top = Math.max(48, this.height / 2 - 92);
+        int top = Math.max(48, this.height / 2 - 104);
         int rowHeight = BUTTON_HEIGHT + GAP;
         int row = 0;
 
@@ -45,37 +46,76 @@ public final class HudConfigScreen extends Screen {
             button.setMessage(scaleLabel());
         }).bounds(right, top + row * rowHeight, buttonWidth, BUTTON_HEIGHT).build());
         row++;
+
         int editorY = top + row * rowHeight;
-        addRenderableWidget(Button.builder(Component.literal("Панель: " + MOVABLE_LABELS[selectedPanel]),
-                button -> {
-                    selectedPanel = (selectedPanel + 1) % MOVABLE_PANELS.length;
-                    button.setMessage(Component.literal("Панель: " + MOVABLE_LABELS[selectedPanel]));
-                }).bounds(left, editorY, buttonWidth, BUTTON_HEIGHT).build());
-        addRenderableWidget(Button.builder(Component.literal("Сбросить позицию"),
-                button -> HudConfig.move(MOVABLE_PANELS[selectedPanel], -positionX(), -positionY()))
-                .bounds(right, editorY, buttonWidth, BUTTON_HEIGHT).build());
-        row++;
-        addRenderableWidget(Button.builder(Component.literal("←"), button -> nudge(-4, 0))
-                .bounds(left, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
-        addRenderableWidget(Button.builder(Component.literal("→"), button -> nudge(4, 0))
-                .bounds(left + buttonWidth / 2 + 2, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
-        addRenderableWidget(Button.builder(Component.literal("↑"), button -> nudge(0, -4))
-                .bounds(right, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
-        addRenderableWidget(Button.builder(Component.literal("↓"), button -> nudge(0, 4))
-                .bounds(right + buttonWidth / 2 + 2, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(panelLabel(), button -> {
+            selectedPanel = (selectedPanel + 1) % MOVABLE_PANELS.length;
+            button.setMessage(panelLabel());
+            refreshOpacityButton();
+        }).bounds(left, editorY, buttonWidth, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(opacityLabel(), button -> {
+            HudConfig.cycleOpacity(selectedKey());
+            button.setMessage(opacityLabel());
+        }).bounds(right, editorY, buttonWidth, BUTTON_HEIGHT).build());
         row++;
 
-        int footerY = Math.min(this.height - 34, top + row * rowHeight + 8);
-        addRenderableWidget(Button.builder(Component.literal("Сбросить"), button -> {
+        int moveY = top + row * rowHeight;
+        int moveWidth = (buttonWidth - 6) / 2;
+        addRenderableWidget(Button.builder(Component.literal("←"), button -> nudge(-4, 0))
+                .bounds(left, moveY, moveWidth, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("→"), button -> nudge(4, 0))
+                .bounds(left + moveWidth + 6, moveY, moveWidth, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("↑"), button -> nudge(0, -4))
+                .bounds(right, moveY, moveWidth, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("↓"), button -> nudge(0, 4))
+                .bounds(right + moveWidth + 6, moveY, moveWidth, BUTTON_HEIGHT).build());
+        row++;
+
+        int footerY = Math.min(this.height - 28, top + row * rowHeight + 4);
+        int thirdGap = 6;
+        int thirdWidth = (totalWidth - thirdGap * 2) / 3;
+        addRenderableWidget(Button.builder(Component.literal("Сброс позиции"),
+                button -> HudConfig.resetPosition(selectedKey()))
+                .bounds(left, footerY, thirdWidth, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("Сбросить всё"), button -> {
             HudConfig.reset();
+            selectedPanel = 0;
             clearWidgets();
             init();
-        }).bounds(left, footerY, buttonWidth, BUTTON_HEIGHT).build());
+        }).bounds(left + thirdWidth + thirdGap, footerY, thirdWidth, BUTTON_HEIGHT).build());
         addRenderableWidget(Button.builder(Component.literal("Готово"), button -> onClose())
-                .bounds(right, footerY, buttonWidth, BUTTON_HEIGHT).build());
+                .bounds(left + (thirdWidth + thirdGap) * 2, footerY, thirdWidth, BUTTON_HEIGHT).build());
     }
 
-    private int positionX() {\n        return switch (selectedPanel) {\n            case 0 -> HudConfig.identityX();\n            case 1 -> HudConfig.statusX();\n            case 2 -> HudConfig.effectsX();\n            default -> HudConfig.connectionX();\n        };\n    }\n\n    private int positionY() {\n        return switch (selectedPanel) {\n            case 0 -> HudConfig.identityY();\n            case 1 -> HudConfig.statusY();\n            case 2 -> HudConfig.effectsY();\n            default -> HudConfig.connectionY();\n        };\n    }\n\n    private void nudge(int dx, int dy) {\n        HudConfig.move(MOVABLE_PANELS[selectedPanel], dx, dy);\n    }\n\n    private void addToggle(
+    private void refreshOpacityButton() {
+        for (var widget : this.children()) {
+            if (widget instanceof Button button && button.getMessage().getString().startsWith("Прозрачность:")) {
+                button.setMessage(opacityLabel());
+            }
+        }
+    }
+
+    private String selectedKey() {
+        return MOVABLE_PANELS[selectedPanel];
+    }
+
+    private Component panelLabel() {
+        return Component.literal("Блок: " + MOVABLE_LABELS[selectedPanel]);
+    }
+
+    private Component opacityLabel() {
+        return Component.literal("Прозрачность: " + HudConfig.opacity(selectedKey()) + "%");
+    }
+
+    private static Component scaleLabel() {
+        return Component.literal("Масштаб: " + Math.round(HudConfig.scale() * 100.0D) + "%");
+    }
+
+    private void nudge(int dx, int dy) {
+        HudConfig.move(selectedKey(), dx, dy);
+    }
+
+    private void addToggle(
             int x,
             int y,
             int width,
@@ -92,15 +132,13 @@ public final class HudConfigScreen extends Screen {
         return Component.literal(label + ": " + (enabled ? "ВКЛ" : "ВЫКЛ"));
     }
 
-    private static Component scaleLabel() {
-        return Component.literal("Масштаб: " + Math.round(HudConfig.scale() * 100.0D) + "%");
-    }
-
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         graphics.centeredText(this.font, "РАСКОЛ", this.width / 2, 22, 0xFFE1B66F);
         graphics.centeredText(this.font, "ПЕРСОНАЛИЗАЦИЯ ИНТЕРФЕЙСА", this.width / 2, 34, 0xFFD0C2B8);
+        graphics.centeredText(this.font, "Выбери блок, затем перемещай стрелками и меняй прозрачность",
+                this.width / 2, this.height - 42, 0xFFB5A69B);
     }
 
     @Override
