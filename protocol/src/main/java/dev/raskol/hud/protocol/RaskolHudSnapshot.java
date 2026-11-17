@@ -102,7 +102,7 @@ public record RaskolHudSnapshot(
     }
 
     private static String safe(String value) {
-        return Objects.requireNonNullElse(value, "");
+        return RaskolHudText.limit(value);
     }
 
     private static List<RaskolHudEffect> safeEffects(List<RaskolHudEffect> effects) {
