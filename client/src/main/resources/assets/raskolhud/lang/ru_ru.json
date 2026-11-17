@@ -27,5 +27,6 @@
   "raskolhud.config.opacity": "Прозрачность: %s%%",
   "raskolhud.config.reset_position": "Сброс позиции",
   "raskolhud.config.reset_all": "Сбросить всё",
-  "raskolhud.config.done": "Готово"
+  "raskolhud.config.done": "Готово",
+  "raskolhud.config.panel.scoreboard": "Табло / фракция"
 }
