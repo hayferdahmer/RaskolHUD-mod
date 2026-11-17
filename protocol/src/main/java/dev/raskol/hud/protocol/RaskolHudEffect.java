@@ -1,7 +1,5 @@
 package dev.raskol.hud.protocol;
 
-import java.util.Objects;
-
 /**
  * Серверное состояние одного активного эффекта, предназначенное только для отображения.
  */
