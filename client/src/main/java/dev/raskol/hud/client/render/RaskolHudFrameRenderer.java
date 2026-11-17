@@ -99,8 +99,12 @@ public final class RaskolHudFrameRenderer {
     }
 
     private static void fill(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int color) {
-        if (x2 > x1 && y2 > y1) {
-            g.fill(x1, y1, x2, y2, color);
+        int left = Math.min(x1, x2);
+        int top = Math.min(y1, y2);
+        int right = Math.max(x1, x2);
+        int bottom = Math.max(y1, y2);
+        if (right > left && bottom > top) {
+            g.fill(left, top, right, bottom, color);
         }
     }
 
