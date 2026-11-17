@@ -8,6 +8,7 @@ import java.util.Locale;
 import dev.raskol.hud.client.config.HudConfig;
 import dev.raskol.hud.client.network.HudStateStore;
 import dev.raskol.hud.protocol.RaskolHudEffect;
+import dev.raskol.hud.protocol.RaskolHudCharacterStats;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -40,6 +41,7 @@ public final class RaskolHudRenderer {
     private static final int IDENTITY_WIDTH = 226;
     private static final int IDENTITY_HEIGHT = 42;
     private static final int STATUS_WIDTH = 216;
+    private static final int STATS_WIDTH = 154;
     private static final int STATUS_HEIGHT = 38;
     private static final int HOTBAR_GAP = 22;
 
@@ -83,6 +85,10 @@ public final class RaskolHudRenderer {
             drawAtOffset(graphics, HudConfig.effectsX(), HudConfig.effectsY(), HudConfig.opacity("effects"),
                     () -> drawCrowdControl(graphics, font, state, graphics.guiWidth(),
                             graphics.guiHeight() - HOTBAR_GAP - STATUS_HEIGHT - 19));
+        }
+        if (HudConfig.showCombatStats() && state.characterStats().available()) {
+            drawAtOffset(graphics, HudConfig.combatStatsX(), HudConfig.combatStatsY(), HudConfig.opacity("combatStats"),
+                    () -> drawCombatStats(graphics, font, state.characterStats(), state.classId()));
         }
         if (HudConfig.showScoreboard()) {
             RaskolScoreboardRenderer.render(graphics, font, client, state);
@@ -148,6 +154,39 @@ public final class RaskolHudRenderer {
             int available = right - 8 - specX;
             text(graphics, font, fit(font, specText, Math.max(0, available)), specX, y + 23, SECONDARY);
         }
+    }
+
+    private static void drawCombatStats(
+            GuiGraphicsExtractor graphics,
+            Font font,
+            RaskolHudCharacterStats stats,
+            String classId) {
+        int x = 10;
+        int y = 60;
+        int width = STATS_WIDTH;
+        int height = 94;
+        RaskolClassTheme theme = RaskolClassTheme.forClass(classId);
+        drawFrame(graphics, x, y, width, height, withAlpha(theme.accent(), 170));
+        text(graphics, font, "БОЕВЫЕ ХАРАКТЕРИСТИКИ", x + 7, y + 6, theme.highlight());
+        fill(graphics, x + 7, y + 19, x + width - 7, y + 20, DIVIDER);
+        drawStatLine(graphics, font, "Физ. сопротивление", stats.physicalResistancePct(), x + 7, y + 25);
+        drawStatLine(graphics, font, "Маг. сопротивление", stats.magicResistancePct(), x + 7, y + 36);
+        drawStatLine(graphics, font, "Уклонение", stats.dodgePct(), x + 7, y + 47);
+        drawStatLine(graphics, font, "Парирование", stats.parryPct(), x + 7, y + 58);
+        drawStatLine(graphics, font, "Крит. ближний бой", stats.meleeCritPct(), x + 7, y + 69);
+        drawStatLine(graphics, font, "Крит. заклинания", stats.spellCritPct(), x + 7, y + 80);
+        if (stats.earnedTalentPoints() > 0 || stats.availableTalentPoints() > 0) {
+            String talent = "Таланты: " + stats.spentTalentPoints() + "/" + stats.earnedTalentPoints()
+                    + " (+" + stats.availableTalentPoints() + ")";
+            text(graphics, font, fit(font, talent, width - 14), x + 7, y + height + 3, SECONDARY);
+        }
+    }
+
+    private static void drawStatLine(
+            GuiGraphicsExtractor graphics, Font font, String label, double value, int x, int y) {
+        text(graphics, font, label, x, y, SECONDARY);
+        String formatted = String.format(Locale.ROOT, "%.1f%%", value);
+        drawRightAligned(graphics, font, formatted, x + STATS_WIDTH - 14, y, TEXT);
     }
 
     private static void drawPlayerHead(
