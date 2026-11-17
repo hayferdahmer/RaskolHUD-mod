@@ -3,6 +3,7 @@ package dev.raskol.hud.client.render;
 import java.util.HashMap;
 import java.util.Map;
 
+import dev.raskol.hud.client.config.HudConfig;
 import dev.raskol.hud.protocol.RaskolHudCooldown;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import net.minecraft.client.Minecraft;
@@ -24,6 +25,12 @@ public final class RaskolHotbarRenderer {
             return;
         }
 
+        float scale = (float) HudConfig.scale();
+        float centerXFloat = graphics.guiWidth() / 2.0F;
+        float centerYFloat = graphics.guiHeight() / 2.0F;
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerXFloat * (1.0F - scale), centerYFloat * (1.0F - scale));
+        graphics.pose().scale(scale, scale);
         int centerX = graphics.guiWidth() / 2;
         int top = graphics.guiHeight() - 22;
         int left = centerX - 91;
@@ -66,5 +73,6 @@ public final class RaskolHotbarRenderer {
             int textY = iconY + 4;
             graphics.text(font, label, textX, textY, 0xFFF5EDE4);
         }
+        graphics.pose().popMatrix();
     }
 }
