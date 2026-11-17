@@ -20,12 +20,12 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import org.lwjgl.sdl.SDLScancode;
 
 public final class RaskolHudClient implements ClientModInitializer {
 
     private static final KeyMapping OPEN_SETTINGS = KeyMappingHelper.registerKeyMapping(
-            new KeyMapping("key.raskolhud.open_settings", GLFW.GLFW_KEY_RIGHT_SHIFT, KeyMapping.Category.MISC));
+            new KeyMapping("key.raskolhud.open_settings", SDLScancode.SDL_SCANCODE_RSHIFT, KeyMapping.Category.MISC));
 
     @Override
     public void onInitializeClient() {
