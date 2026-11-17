@@ -71,27 +71,10 @@ public final class RaskolHudFrameRenderer {
         }
     }
 
-    private static void corner(
-            GuiGraphicsExtractor g, int cx, int cy, int accent, int opacity, boolean right, boolean bottom) {
-        int sx = right ? -1 : 1;
-        int sy = bottom ? -1 : 1;
-        fill(g, cx, cy, cx + sx * 5, cy + sy, alpha(STEEL_LIGHT, opacity));
-        fill(g, cx, cy, cx + sx, cy + sy * 5, alpha(STEEL_LIGHT, opacity));
-        fill(g, cx + sx, cy + sy, cx + sx * 4, cy + sy * 2, alpha(accent, opacity));
-        fill(g, cx + sx * 2, cy + sy * 2, cx + sx * 3, cy + sy * 3, alpha(BLACK, opacity));
-    }
-
     private static void rivet(GuiGraphicsExtractor g, int x, int y, int opacity) {
         fill(g, x - 2, y - 2, x + 3, y + 3, alpha(BLACK, opacity));
         fill(g, x - 1, y - 1, x + 2, y + 2, alpha(STEEL_LIGHT, opacity));
         fill(g, x, y, x + 1, y + 1, alpha(STEEL_DARK, opacity));
-    }
-
-    private static void crest(GuiGraphicsExtractor g, int cx, int y, int accent, int opacity) {
-        fill(g, cx - 5, y - 1, cx + 6, y + 2, alpha(BLACK, opacity));
-        fill(g, cx - 3, y - 2, cx + 4, y + 3, alpha(accent, opacity));
-        fill(g, cx - 1, y - 3, cx + 2, y + 4, alpha(STEEL_LIGHT, opacity));
-        fill(g, cx - 1, y - 1, cx + 1, y + 1, alpha(BLACK, opacity));
     }
 
     private static void fill(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int color) {
