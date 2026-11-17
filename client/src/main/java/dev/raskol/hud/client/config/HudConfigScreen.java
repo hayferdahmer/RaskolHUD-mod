@@ -8,6 +8,9 @@ import net.minecraft.network.chat.Component;
 /** Экран персонализации интерфейса РАСКОЛ. */
 public final class HudConfigScreen extends Screen {
     private final Screen parent;
+    private static final String[] MOVABLE_PANELS = {"identity", "status", "effects", "connection"};
+    private static final String[] MOVABLE_LABELS = {"Персонаж", "Здоровье / ресурс", "Эффекты", "Связь"};
+    private int selectedPanel;
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 8;
     private static final int COLUMN_GAP = 12;
@@ -42,6 +45,25 @@ public final class HudConfigScreen extends Screen {
             button.setMessage(scaleLabel());
         }).bounds(right, top + row * rowHeight, buttonWidth, BUTTON_HEIGHT).build());
         row++;
+        int editorY = top + row * rowHeight;
+        addRenderableWidget(Button.builder(Component.literal("Панель: " + MOVABLE_LABELS[selectedPanel]),
+                button -> {
+                    selectedPanel = (selectedPanel + 1) % MOVABLE_PANELS.length;
+                    button.setMessage(Component.literal("Панель: " + MOVABLE_LABELS[selectedPanel]));
+                }).bounds(left, editorY, buttonWidth, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("Сбросить позицию"),
+                button -> HudConfig.move(MOVABLE_PANELS[selectedPanel], -positionX(), -positionY()))
+                .bounds(right, editorY, buttonWidth, BUTTON_HEIGHT).build());
+        row++;
+        addRenderableWidget(Button.builder(Component.literal("←"), button -> nudge(-4, 0))
+                .bounds(left, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("→"), button -> nudge(4, 0))
+                .bounds(left + buttonWidth / 2 + 2, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("↑"), button -> nudge(0, -4))
+                .bounds(right, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
+        addRenderableWidget(Button.builder(Component.literal("↓"), button -> nudge(0, 4))
+                .bounds(right + buttonWidth / 2 + 2, top + row * rowHeight, buttonWidth / 2 - 2, BUTTON_HEIGHT).build());
+        row++;
 
         int footerY = Math.min(this.height - 34, top + row * rowHeight + 8);
         addRenderableWidget(Button.builder(Component.literal("Сбросить"), button -> {
@@ -53,7 +75,7 @@ public final class HudConfigScreen extends Screen {
                 .bounds(right, footerY, buttonWidth, BUTTON_HEIGHT).build());
     }
 
-    private void addToggle(
+    private int positionX() {\n        return switch (selectedPanel) {\n            case 0 -> HudConfig.identityX();\n            case 1 -> HudConfig.statusX();\n            case 2 -> HudConfig.effectsX();\n            default -> HudConfig.connectionX();\n        };\n    }\n\n    private int positionY() {\n        return switch (selectedPanel) {\n            case 0 -> HudConfig.identityY();\n            case 1 -> HudConfig.statusY();\n            case 2 -> HudConfig.effectsY();\n            default -> HudConfig.connectionY();\n        };\n    }\n\n    private void nudge(int dx, int dy) {\n        HudConfig.move(MOVABLE_PANELS[selectedPanel], dx, dy);\n    }\n\n    private void addToggle(
             int x,
             int y,
             int width,
