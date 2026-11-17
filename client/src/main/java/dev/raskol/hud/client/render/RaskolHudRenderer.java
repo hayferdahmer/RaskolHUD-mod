@@ -31,7 +31,9 @@ public final class RaskolHudRenderer {
     private static final int SECONDARY = 0xFFD0C2B8;
     private static final int MUTED = 0xC08F817D;
     private static final int HEALTH = 0xFF873747;
-    private static final int HEALTH_HIGHLIGHT = 0xFFB35C68;
+    private static final int HEALTH_HIGHLIGHT = 0xFFFF8A8A;
+    private static final int RESOURCE_BLUE = 0xFF1769B5;
+    private static final int RESOURCE_BLUE_HIGHLIGHT = 0xFF70C5FF;
     private static final int ARMOR = 0xFF8E9AA8;
     private static final int HUNGER = 0xFFC18A4E;
     private static final int TRACK = 0xB221191E;
@@ -291,13 +293,13 @@ public final class RaskolHudRenderer {
         String resourceTitle = (state.resourceSymbol().isBlank() ? "" : state.resourceSymbol() + " ")
                 + resourceLabel;
         text(graphics, font, fit(font, resourceTitle, columnWidth - font.width(resourceValue) - 4),
-                right, y + 6, theme.highlight());
+                right, y + 6, RESOURCE_BLUE_HIGHLIGHT);
         drawRightAligned(graphics, font, resourceValue, rightEdge, y + 6, TEXT);
         if (state.resourceMax() > 0) {
             drawBar(graphics, right, y + 20, columnWidth, 7,
-                    state.resource(), state.resourceMax(), withAlpha(theme.accent(), 220), theme.highlight());
+                    state.resource(), state.resourceMax(), withAlpha(RESOURCE_BLUE, 235), RESOURCE_BLUE_HIGHLIGHT);
         } else {
-            drawDecorativeRule(graphics, right, y + 23, columnWidth, withAlpha(theme.accent(), 210));
+            drawDecorativeRule(graphics, right, y + 23, columnWidth, withAlpha(RESOURCE_BLUE, 220));
         }
 
         int armor = Math.max(0, player.getArmorValue());
