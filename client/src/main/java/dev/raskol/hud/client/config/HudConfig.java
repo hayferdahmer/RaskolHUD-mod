@@ -30,7 +30,7 @@ public final class HudConfig {
     private static int connectionX;
     private static int connectionY;
     private static int combatStatsX;
-    private static int combatStatsY = 60;
+    private static int combatStatsY;
     private static int identityOpacity = 100;
     private static int statusOpacity = 100;
     private static int effectsOpacity = 100;
@@ -67,7 +67,7 @@ public final class HudConfig {
             connectionX = readOffset(properties, "connectionX");
             connectionY = readOffset(properties, "connectionY");
             combatStatsX = readOffset(properties, "combatStatsX");
-            combatStatsY = readOffset(properties, "combatStatsY", 60);
+            combatStatsY = readOffset(properties, "combatStatsY");
             identityOpacity = readPercent(properties, "identityOpacity");
             statusOpacity = readPercent(properties, "statusOpacity");
             effectsOpacity = readPercent(properties, "effectsOpacity");
@@ -212,7 +212,7 @@ public final class HudConfig {
             case "status" -> { statusX = 0; statusY = 0; }
             case "effects" -> { effectsX = 0; effectsY = 0; }
             case "connection" -> { connectionX = 0; connectionY = 0; }
-            case "combatStats" -> { combatStatsX = 0; combatStatsY = 60; }
+            case "combatStats" -> { combatStatsX = 0; combatStatsY = 0; }
             default -> { return; }
         }
         save();
@@ -259,7 +259,7 @@ public final class HudConfig {
         showCombatStats = true;
         scale = 1.0D;
         identityX = identityY = statusX = statusY = effectsX = effectsY = connectionX = connectionY = combatStatsX = 0;
-        combatStatsY = 60;
+        combatStatsY = 0;
         identityOpacity = statusOpacity = effectsOpacity = connectionOpacity = combatStatsOpacity = 100;
         save();
     }
