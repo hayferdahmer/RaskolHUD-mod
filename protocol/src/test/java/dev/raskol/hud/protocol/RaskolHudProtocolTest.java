@@ -62,8 +62,8 @@ final class RaskolHudProtocolTest {
         assertEquals(target, RaskolHudProtocol.decode(RaskolHudProtocol.encode(value)).target());
         assertEquals(RaskolHudTarget.UNAVAILABLE,
                 RaskolHudProtocol.decode(RaskolHudProtocol.encode(snapshot())).target());
-        assertThrows(IllegalArgumentException.class,
-                () -> new RaskolHudTarget(true, false, "Скелет", "SKELETON", "", 18, 30, 20));
+        assertEquals(20.0, new RaskolHudTarget(true, false, "Скелет", "SKELETON", "", 18, 30, 20)
+                .health());
     }
 
     @Test
