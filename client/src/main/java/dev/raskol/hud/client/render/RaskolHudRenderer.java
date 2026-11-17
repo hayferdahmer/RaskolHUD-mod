@@ -164,7 +164,7 @@ public final class RaskolHudRenderer {
         int x = 10;
         int y = 60;
         int width = STATS_WIDTH;
-        int height = 94;
+        int height = 108;
         RaskolClassTheme theme = RaskolClassTheme.forClass(classId);
         drawFrame(graphics, x, y, width, height, withAlpha(theme.accent(), 170));
         text(graphics, font, "БОЕВЫЕ ХАРАКТЕРИСТИКИ", x + 7, y + 6, theme.highlight());
@@ -178,7 +178,7 @@ public final class RaskolHudRenderer {
         if (stats.earnedTalentPoints() > 0 || stats.availableTalentPoints() > 0) {
             String talent = "Таланты: " + stats.spentTalentPoints() + "/" + stats.earnedTalentPoints()
                     + " (+" + stats.availableTalentPoints() + ")";
-            text(graphics, font, fit(font, talent, width - 14), x + 7, y + height + 3, SECONDARY);
+            text(graphics, font, fit(font, talent, width - 14), x + 7, y + 94, SECONDARY);
         }
     }
 
