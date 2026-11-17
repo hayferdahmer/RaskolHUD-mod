@@ -39,6 +39,7 @@ import dev.raskol.hud.protocol.CrosshairSignalRules;
 import dev.raskol.hud.protocol.CrosshairSignalRules.DotState;
 import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudCooldown;
+import dev.raskol.hud.protocol.RaskolHudCharacterStats;
 import dev.raskol.hud.protocol.RaskolHudProtocol.CrosshairSignal;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
@@ -350,7 +351,8 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
                     playerEffects,
                     activeDamageOverTime(player.getUniqueId()),
                     activeCrowdControl(player.getUniqueId()),
-                    cooldowns(player));
+                    cooldowns(player),
+                    characterStats(player));
 
             player.sendPluginMessage(this, RaskolHudProtocol.STATE_CHANNEL, RaskolHudProtocol.encode(snapshot));
         } catch (IOException | RuntimeException exception) {
@@ -549,6 +551,69 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
             warnOptionalApi("Could not read the effective class resource maximum", exception);
         }
         return 0;
+    }
+
+    private RaskolHudCharacterStats characterStats(Player player) {
+        String physical = placeholder(player, "phys_resist");
+        String magic = placeholder(player, "magic_resist");
+        String dodge = placeholder(player, "dodge");
+        String parry = placeholder(player, "parry");
+        String meleeCrit = placeholder(player, "crit_melee");
+        String spellCrit = placeholder(player, "crit_spell");
+        String availablePoints = placeholder(player, "talent_points");
+        String talentProgress = placeholder(player, "talents");
+
+        boolean available = !(physical.isBlank() && magic.isBlank() && dodge.isBlank()
+                && parry.isBlank() && meleeCrit.isBlank() && spellCrit.isBlank()
+                && availablePoints.isBlank() && talentProgress.isBlank());
+        if (!available) {
+            return RaskolHudCharacterStats.UNAVAILABLE;
+        }
+
+        int spent = 0;
+        int earned = 0;
+        if (!talentProgress.isBlank()) {
+            String[] parts = talentProgress.split("/", -1);
+            if (parts.length == 2) {
+                spent = parseNonNegativeInt(parts[0]);
+                earned = parseNonNegativeInt(parts[1]);
+            }
+        }
+
+        return new RaskolHudCharacterStats(
+                true,
+                parseDecimal(physical),
+                parseDecimal(magic),
+                parseDecimal(dodge),
+                parseDecimal(parry),
+                parseDecimal(meleeCrit),
+                parseDecimal(spellCrit),
+                parseNonNegativeInt(availablePoints),
+                spent,
+                earned);
+    }
+
+    private static double parseDecimal(String value) {
+        if (value == null || value.isBlank()) {
+            return 0.0D;
+        }
+        try {
+            double parsed = Double.parseDouble(value.replace(',', '.').replace("%", "").trim());
+            return Double.isFinite(parsed) ? parsed : 0.0D;
+        } catch (NumberFormatException exception) {
+            return 0.0D;
+        }
+    }
+
+    private static int parseNonNegativeInt(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(value.trim()));
+        } catch (NumberFormatException exception) {
+            return 0;
+        }
     }
 
     private List<RaskolHudEffect> activeEffects(UUID playerId) {
