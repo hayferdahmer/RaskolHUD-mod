@@ -7,8 +7,8 @@ import net.minecraft.network.chat.Component;
 
 /** Экран персонализации интерфейса РАСКОЛ. */
 public final class HudConfigScreen extends Screen {
-    private static final String[] MOVABLE_PANELS = {"identity", "status", "effects", "connection", "combatStats"};
-    private static final String[] MOVABLE_LABELS = {"Персонаж", "Здоровье / ресурс", "Эффекты", "Связь", "Характеристики"};
+    private static final String[] MOVABLE_PANELS = {"identity", "status", "effects", "connection", "combatStats", "target"};
+    private static final String[] MOVABLE_LABELS = {"Персонаж", "Здоровье / ресурс", "Эффекты", "Связь", "Характеристики", "Цель"};
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 8;
     private static final int COLUMN_GAP = 12;
@@ -48,6 +48,7 @@ public final class HudConfigScreen extends Screen {
         }).bounds(right, top + row * rowHeight, buttonWidth, BUTTON_HEIGHT).build());
         row++;
         addToggle(left, top + row * rowHeight, buttonWidth, "Боевые характеристики", HudConfig::showCombatStats, HudConfig::toggleCombatStats);
+        addToggle(right, top + row * rowHeight, buttonWidth, "Рамка цели", HudConfig::showTarget, HudConfig::toggleTarget);
         row++;
 
         int editorY = top + row * rowHeight;
