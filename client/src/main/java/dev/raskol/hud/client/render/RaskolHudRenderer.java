@@ -396,15 +396,24 @@ public final class RaskolHudRenderer {
         if (width <= 0 || height <= 0) {
             return;
         }
-        fill(graphics, x, y, x + width, y + height, TRACK);
+        // Утопленная шкала с металлической кромкой, тёмным желобом и бликом заполнения.
+        fill(graphics, x - 1, y - 1, x + width + 1, y + height + 1, 0xFF050509);
+        fill(graphics, x, y, x + width, y + height, 0xFF79645A);
+        fill(graphics, x + 1, y + 1, x + width - 1, y + height - 1, TRACK);
         if (maximum <= 0 || current <= 0) {
+            fill(graphics, x + 1, y + 1, x + width - 1, y + 2, 0x704C3D3A);
             return;
         }
         double fraction = Math.max(0.0, Math.min(1.0, (double) current / maximum));
-        int filledWidth = (int) Math.round(width * fraction);
+        int innerWidth = Math.max(0, width - 2);
+        int filledWidth = (int) Math.round(innerWidth * fraction);
         if (filledWidth > 0) {
-            fill(graphics, x, y, x + filledWidth, y + height, fillColor);
-            fill(graphics, x, y, x + filledWidth, y + 1, highlightColor);
+            fill(graphics, x + 1, y + 1, x + 1 + filledWidth, y + height - 1, fillColor);
+            fill(graphics, x + 1, y + 1, x + 1 + filledWidth, y + 2, highlightColor);
+            if (filledWidth > 8) {
+                fill(graphics, x + 3, y + height - 2, x + 1 + filledWidth - 2, y + height - 1,
+                        withAlpha(0xFF080609, 100));
+            }
         }
     }
 
