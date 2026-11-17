@@ -180,6 +180,39 @@ final class RaskolHudProtocolTest {
     }
 
     @Test
+    void decoderRejectsMalformedUtf8() throws Exception {
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        try (java.io.DataOutputStream out = new java.io.DataOutputStream(bytes)) {
+            out.writeInt(0x52534844);
+            out.writeByte(RaskolHudProtocol.PROTOCOL_VERSION);
+            out.writeLong(1L);
+            out.writeByte(1);
+            out.writeByte(0xFF);
+            for (int index = 0; index < 6; index++) out.writeByte(0);
+            for (int index = 0; index < 5; index++) out.writeInt(0);
+            for (int index = 0; index < 4; index++) out.writeByte(0);
+            out.writeBoolean(false);
+            for (int index = 0; index < 6; index++) out.writeDouble(0.0D);
+            for (int index = 0; index < 3; index++) out.writeInt(0);
+            out.writeBoolean(false);
+        }
+        assertThrows(IOException.class, () -> RaskolHudProtocol.decode(bytes.toByteArray()));
+    }
+
+    @Test
+    void protocolModelsClampProgressionAndCombatTimerBounds() {
+        RaskolHudSnapshot snapshot = new RaskolHudSnapshot(
+                1L, "mage", "Маг", "", "Мана", "✦",
+                "", "", 100, 100, 100, 100, 100, List.of(), List.of(), List.of(), List.of());
+        assertEquals(60, snapshot.characterLevel());
+        assertEquals(86_400, new RaskolHudEffect("long", "Долгий", "✦", 100_000, 100_000, 1, false)
+                .remainingSeconds());
+        assertEquals(1_000_000D,
+                new RaskolHudTarget(true, false, "Босс", "ZOMBIE", "", 60, 2_000_000D, 2_000_000D)
+                        .healthMax());
+    }
+
+    @Test
     void decoderRejectsTruncatedPacket() {
         assertThrows(IOException.class, () -> RaskolHudProtocol.decode(new byte[] {1, 2, 3}));
     }
