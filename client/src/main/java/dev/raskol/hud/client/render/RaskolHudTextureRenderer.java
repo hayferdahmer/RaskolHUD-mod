@@ -10,8 +10,6 @@ public final class RaskolHudTextureRenderer {
     private static final Identifier FANTASY_HOTBAR_ORNAMENT =
             Identifier.fromNamespaceAndPath("raskolhud", "textures/gui/fantasy_hotbar_ornament.png");
 
-    private static final Identifier RASKOL_CREST =
-            Identifier.fromNamespaceAndPath("raskolhud", "textures/gui/raskol_crest.png");
     private static final Identifier PANEL_FRAME =
             Identifier.fromNamespaceAndPath("raskolhud", "textures/gui/gothic_panel_frame.png");
     private static final Identifier SLOT_FRAME =
@@ -23,9 +21,39 @@ public final class RaskolHudTextureRenderer {
 
     private RaskolHudTextureRenderer() {}
 
+    /**
+     * Рисует рамку девятисегментным способом: углы и толщина металла не деформируются
+     * при изменении ширины или высоты информационной панели.
+     */
     public static void renderPanelFrame(
             GuiGraphicsExtractor graphics, int x, int y, int width, int height, int opacity) {
-        blit(graphics, PANEL_FRAME, x, y, width, height, 256, 128, opacity);
+        if (width < 12 || height < 12) {
+            return;
+        }
+        int corner = Math.min(18, Math.min(width / 2, height / 2));
+        int middleWidth = width - corner * 2;
+        int middleHeight = height - corner * 2;
+
+        blitRegion(graphics, PANEL_FRAME, x, y, corner, corner, 0, 0, 24, 24, 256, 128, opacity);
+        blitRegion(graphics, PANEL_FRAME, x + width - corner, y, corner, corner,
+                232, 0, 24, 24, 256, 128, opacity);
+        blitRegion(graphics, PANEL_FRAME, x, y + height - corner, corner, corner,
+                0, 104, 24, 24, 256, 128, opacity);
+        blitRegion(graphics, PANEL_FRAME, x + width - corner, y + height - corner, corner, corner,
+                232, 104, 24, 24, 256, 128, opacity);
+
+        if (middleWidth > 0) {
+            blitRegion(graphics, PANEL_FRAME, x + corner, y, middleWidth, corner,
+                    24, 0, 208, 24, 256, 128, opacity);
+            blitRegion(graphics, PANEL_FRAME, x + corner, y + height - corner, middleWidth, corner,
+                    24, 104, 208, 24, 256, 128, opacity);
+        }
+        if (middleHeight > 0) {
+            blitRegion(graphics, PANEL_FRAME, x, y + corner, corner, middleHeight,
+                    0, 24, 24, 80, 256, 128, opacity);
+            blitRegion(graphics, PANEL_FRAME, x + width - corner, y + corner, corner, middleHeight,
+                    232, 24, 24, 80, 256, 128, opacity);
+        }
     }
 
     public static void renderSlotFrame(
@@ -46,17 +74,19 @@ public final class RaskolHudTextureRenderer {
     private static void blit(
             GuiGraphicsExtractor graphics, Identifier texture, int x, int y,
             int width, int height, int textureWidth, int textureHeight, int opacity) {
-        int alpha = Math.max(0, Math.min(100, opacity)) * 255 / 100;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F,
-                width, height, textureWidth, textureHeight, textureWidth, textureHeight,
-                (alpha << 24) | 0x00FFFFFF);
+        blitRegion(graphics, texture, x, y, width, height,
+                0, 0, textureWidth, textureHeight, textureWidth, textureHeight, opacity);
     }
 
-    public static void renderRaskolCrest(
-            GuiGraphicsExtractor graphics, int x, int y, int width, int height, int opacity) {
+    private static void blitRegion(
+            GuiGraphicsExtractor graphics, Identifier texture,
+            int x, int y, int width, int height,
+            int u, int v, int sourceWidth, int sourceHeight,
+            int textureWidth, int textureHeight, int opacity) {
         int alpha = Math.max(0, Math.min(100, opacity)) * 255 / 100;
-        graphics.blit(RenderPipelines.GUI_TEXTURED, RASKOL_CREST, x, y, 0.0F, 0.0F,
-                width, height, 64, 67, 64, 67, (alpha << 24) | 0x00FFFFFF);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, (float) u, (float) v,
+                width, height, sourceWidth, sourceHeight, textureWidth, textureHeight,
+                (alpha << 24) | 0x00FFFFFF);
     }
 
     public static void renderFantasyHotbarOrnament(
