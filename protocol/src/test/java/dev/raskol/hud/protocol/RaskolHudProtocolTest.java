@@ -31,9 +31,23 @@ final class RaskolHudProtocolTest {
                 List.of(new RaskolHudEffect("shield_wall", "Стальная кожа", "🛡", 4, 5, 1, false)),
                 List.of(new RaskolHudEffect("bleed", "Кровотечение", "⚔", 3, 4, 2, true)),
                 List.of(new RaskolHudEffect("STUN", "Оцепенение", "✣", 2, 3, 1, true)),
-                List.of(new RaskolHudCooldown(2, "shield_bash", 1500, 8000)));
+                List.of(new RaskolHudCooldown(2, "shield_bash", 1500, 8000)),
+                new RaskolHudCharacterStats(true, 12.5, 8.0, 6.5, 4.0, 18.5, 22.0, 2, 8, 10));
 
         assertEquals(expected, RaskolHudProtocol.decode(RaskolHudProtocol.encode(expected)));
+    }
+
+    @Test
+    void characterStatsAreClampedAndRoundTripWithoutPrecisionLoss() throws Exception {
+        RaskolHudCharacterStats stats = new RaskolHudCharacterStats(
+                true, 12.5, 8.0, 6.5, 4.0, 18.5, 22.0, 2, 8, 10);
+        RaskolHudSnapshot value = new RaskolHudSnapshot(
+                1L, "mage", "Маг", "Лёд", "Мана", "✦",
+                "", "", 40, 500, 600, 40, 100, List.of(), List.of(), List.of(), List.of(), stats);
+
+        assertEquals(stats, RaskolHudProtocol.decode(RaskolHudProtocol.encode(value)).characterStats());
+        assertEquals(60.0, new RaskolHudCharacterStats(true, 90, 90, 150, -1, 200, 200, -1, 2, 3)
+                .physicalResistancePct());
     }
 
     @Test
