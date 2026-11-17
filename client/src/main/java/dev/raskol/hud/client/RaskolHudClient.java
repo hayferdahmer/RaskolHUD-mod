@@ -60,11 +60,11 @@ public final class RaskolHudClient implements ClientModInitializer {
         });
 
         // Пока серверный снимок актуален, заменяем дублирующие ванильные слои.
-        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.HEALTH_BAR);
-        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.ARMOR_BAR);
-        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.FOOD_BAR);
-        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.SCOREBOARD);
-        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.OVERLAY_MESSAGE);
+        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.HEALTH_BAR, HudConfig::showStatus);
+        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.ARMOR_BAR, HudConfig::showStatus);
+        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.FOOD_BAR, HudConfig::showStatus);
+        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.SCOREBOARD, HudConfig::showScoreboard);
+        hideVanillaElementWhenRaskolHudIsActive(VanillaHudElements.OVERLAY_MESSAGE, () -> true);
 
         HudElementRegistry.replaceElement(
                 VanillaHudElements.CROSSHAIR,
@@ -93,11 +93,13 @@ public final class RaskolHudClient implements ClientModInitializer {
                 RaskolHudRenderer::render);
     }
 
-    private static void hideVanillaElementWhenRaskolHudIsActive(Identifier elementId) {
+    private static void hideVanillaElementWhenRaskolHudIsActive(
+            Identifier elementId,
+            java.util.function.BooleanSupplier replacementEnabled) {
         HudElementRegistry.replaceElement(
                 elementId,
                 vanillaElement -> (graphics, deltaTracker) -> {
-                    if (HudStateStore.current() == null) {
+                    if (HudStateStore.current() == null || !replacementEnabled.getAsBoolean()) {
                         vanillaElement.extractRenderState(graphics, deltaTracker);
                     }
                 });
