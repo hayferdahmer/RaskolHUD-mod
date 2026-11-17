@@ -70,7 +70,8 @@ public final class RaskolHudFrameRenderer {
         fill(graphics, x + 8, y + height - 3, x + width - 8, y + height - 2, alpha(accent, a / 2));
         rivet(graphics, x + 5, y + 5, a);
         rivet(graphics, x + width - 5, y + 5, a);
-        // Центральная часть пластины остаётся свободной, чтобы не задевать предметы.
+        // Общая рамка масштабируется по девяти сегментам, не растягивая угловой металл.
+        RaskolHudTextureRenderer.renderPanelFrame(graphics, x, y, width, height, a);
     }
 
     public static void slot(
