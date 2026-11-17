@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 /** Экран персонализации интерфейса РАСКОЛ. */
 public final class HudConfigScreen extends Screen {
     private static final String[] MOVABLE_PANELS = {"identity", "status", "effects", "connection", "combatStats", "target"};
-    private static final String[] MOVABLE_LABELS = {"Персонаж", "Здоровье / ресурс", "Эффекты", "Связь", "Характеристики", "Цель"};
+    private static final String[] MOVABLE_LABELS = {"raskolhud.config.panel.identity", "raskolhud.config.panel.status", "raskolhud.config.panel.effects", "raskolhud.config.panel.connection", "raskolhud.config.panel.stats", "raskolhud.config.panel.target"};
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 8;
     private static final int COLUMN_GAP = 12;
@@ -18,7 +18,7 @@ public final class HudConfigScreen extends Screen {
     private Button opacityButton;
 
     public HudConfigScreen(Screen parent) {
-        super(Component.literal("Настройки RaskolHUD"));
+        super(Component.translatable("raskolhud.config.title"));
         this.parent = parent;
     }
 
@@ -32,23 +32,23 @@ public final class HudConfigScreen extends Screen {
         int rowHeight = BUTTON_HEIGHT + GAP;
         int row = 0;
 
-        addToggle(left, top + row * rowHeight, buttonWidth, "Персонаж", HudConfig::showIdentity, HudConfig::toggleIdentity);
-        addToggle(right, top + row * rowHeight, buttonWidth, "Здоровье / ресурс", HudConfig::showStatus, HudConfig::toggleStatus);
+        addToggle(left, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.identity", HudConfig::showIdentity, HudConfig::toggleIdentity);
+        addToggle(right, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.status", HudConfig::showStatus, HudConfig::toggleStatus);
         row++;
-        addToggle(left, top + row * rowHeight, buttonWidth, "Эффекты / DoT", HudConfig::showEffects, HudConfig::toggleEffects);
-        addToggle(right, top + row * rowHeight, buttonWidth, "Связь с сервером", HudConfig::showConnection, HudConfig::toggleConnection);
+        addToggle(left, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.effects", HudConfig::showEffects, HudConfig::toggleEffects);
+        addToggle(right, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.connection", HudConfig::showConnection, HudConfig::toggleConnection);
         row++;
-        addToggle(left, top + row * rowHeight, buttonWidth, "Фракция / табло", HudConfig::showScoreboard, HudConfig::toggleScoreboard);
-        addToggle(right, top + row * rowHeight, buttonWidth, "Хотбар и таймеры КД", HudConfig::showHotbarFrame, HudConfig::toggleHotbarFrame);
+        addToggle(left, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.scoreboard", HudConfig::showScoreboard, HudConfig::toggleScoreboard);
+        addToggle(right, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.hotbar", HudConfig::showHotbarFrame, HudConfig::toggleHotbarFrame);
         row++;
-        addToggle(left, top + row * rowHeight, buttonWidth, "Классовый прицел", HudConfig::showClassCrosshair, HudConfig::toggleClassCrosshair);
+        addToggle(left, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.crosshair", HudConfig::showClassCrosshair, HudConfig::toggleClassCrosshair);
         addRenderableWidget(Button.builder(scaleLabel(), button -> {
             HudConfig.cycleScale();
             button.setMessage(scaleLabel());
         }).bounds(right, top + row * rowHeight, buttonWidth, BUTTON_HEIGHT).build());
         row++;
-        addToggle(left, top + row * rowHeight, buttonWidth, "Боевые характеристики", HudConfig::showCombatStats, HudConfig::toggleCombatStats);
-        addToggle(right, top + row * rowHeight, buttonWidth, "Рамка цели", HudConfig::showTarget, HudConfig::toggleTarget);
+        addToggle(left, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.stats", HudConfig::showCombatStats, HudConfig::toggleCombatStats);
+        addToggle(right, top + row * rowHeight, buttonWidth, "raskolhud.config.toggle.target", HudConfig::showTarget, HudConfig::toggleTarget);
         row++;
 
         int editorY = top + row * rowHeight;
@@ -79,16 +79,16 @@ public final class HudConfigScreen extends Screen {
         int footerY = Math.min(this.height - 28, top + row * rowHeight + 4);
         int thirdGap = 6;
         int thirdWidth = (totalWidth - thirdGap * 2) / 3;
-        addRenderableWidget(Button.builder(Component.literal("Сброс позиции"),
+        addRenderableWidget(Button.builder(Component.translatable("raskolhud.config.reset_position"),
                 button -> HudConfig.resetPosition(selectedKey()))
                 .bounds(left, footerY, thirdWidth, BUTTON_HEIGHT).build());
-        addRenderableWidget(Button.builder(Component.literal("Сбросить всё"), button -> {
+        addRenderableWidget(Button.builder(Component.translatable("raskolhud.config.reset_all"), button -> {
             HudConfig.reset();
             selectedPanel = 0;
             clearWidgets();
             init();
         }).bounds(left + thirdWidth + thirdGap, footerY, thirdWidth, BUTTON_HEIGHT).build());
-        addRenderableWidget(Button.builder(Component.literal("Готово"), button -> onClose())
+        addRenderableWidget(Button.builder(Component.translatable("raskolhud.config.done"), button -> onClose())
                 .bounds(left + (thirdWidth + thirdGap) * 2, footerY, thirdWidth, BUTTON_HEIGHT).build());
     }
 
@@ -103,15 +103,15 @@ public final class HudConfigScreen extends Screen {
     }
 
     private Component panelLabel() {
-        return Component.literal("Блок: " + MOVABLE_LABELS[selectedPanel]);
+        return Component.translatable("raskolhud.config.selected_panel", Component.translatable(MOVABLE_LABELS[selectedPanel]));
     }
 
     private Component opacityLabel() {
-        return Component.literal("Прозрачность: " + HudConfig.opacity(selectedKey()) + "%");
+        return Component.translatable("raskolhud.config.opacity", HudConfig.opacity(selectedKey()));
     }
 
     private static Component scaleLabel() {
-        return Component.literal("Масштаб: " + Math.round(HudConfig.scale() * 100.0D) + "%");
+        return Component.translatable("raskolhud.config.scale", Math.round(HudConfig.scale() * 100.0D));
     }
 
     private void nudge(int dx, int dy) {
@@ -132,15 +132,16 @@ public final class HudConfigScreen extends Screen {
     }
 
     private static Component toggleLabel(String label, boolean enabled) {
-        return Component.literal(label + ": " + (enabled ? "ВКЛ" : "ВЫКЛ"));
+        return Component.translatable("raskolhud.config.toggle_state", Component.translatable(label),
+                Component.translatable(enabled ? "raskolhud.config.enabled" : "raskolhud.config.disabled"));
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        graphics.centeredText(this.font, "РАСКОЛ", this.width / 2, 22, 0xFFE1B66F);
-        graphics.centeredText(this.font, "ПЕРСОНАЛИЗАЦИЯ ИНТЕРФЕЙСА", this.width / 2, 34, 0xFFD0C2B8);
-        graphics.centeredText(this.font, "Выбери блок, затем перемещай стрелками и меняй прозрачность",
+        graphics.centeredText(this.font, Component.translatable("raskolhud.config.brand"), this.width / 2, 22, 0xFFE1B66F);
+        graphics.centeredText(this.font, Component.translatable("raskolhud.config.heading"), this.width / 2, 34, 0xFFD0C2B8);
+        graphics.centeredText(this.font, Component.translatable("raskolhud.config.hint"),
                 this.width / 2, this.height - 42, 0xFFB5A69B);
     }
 
