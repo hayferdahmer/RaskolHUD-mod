@@ -22,10 +22,19 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.client.KeyMapping;
 import org.lwjgl.glfw.GLFW;
 
-public final class RaskolHudClient implements ClientModInitializer {\n\n    private static final KeyMapping OPEN_SETTINGS = KeyMappingHelper.registerKeyMapping(\n            new KeyMapping("key.raskolhud.open_settings", GLFW.GLFW_KEY_RIGHT_SHIFT, KeyMapping.Category.MISC));
+public final class RaskolHudClient implements ClientModInitializer {
+
+    private static final KeyMapping OPEN_SETTINGS = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.raskolhud.open_settings", GLFW.GLFW_KEY_RIGHT_SHIFT, KeyMapping.Category.MISC));
 
     @Override
-    public void onInitializeClient() {\n        HudConfig.load();\n        ClientTickEvents.END_CLIENT_TICK.register(client -> {\n            while (OPEN_SETTINGS.consumeClick()) {\n                client.gui.setScreen(new HudConfigScreen(client.gui.screen()));\n            }\n        });
+    public void onInitializeClient() {
+        HudConfig.load();
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (OPEN_SETTINGS.consumeClick()) {
+                client.gui.setScreen(new HudConfigScreen(client.gui.screen()));
+            }
+        });
         PayloadTypeRegistry.serverboundPlay().register(HelloPayload.TYPE, HelloPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(StatePayload.TYPE, StatePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CrosshairSignalPayload.TYPE, CrosshairSignalPayload.CODEC);
