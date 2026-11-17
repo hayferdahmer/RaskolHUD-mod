@@ -55,7 +55,10 @@ public final class RaskolScoreboardRenderer {
             GuiGraphicsExtractor graphics,
             Font font,
             Minecraft client,
-            RaskolHudSnapshot state) {
+            RaskolHudSnapshot state,
+            int offsetX,
+            int offsetY,
+            int opacity) {
 
         if (client.level == null || client.player == null || state == null) {
             return;
@@ -111,21 +114,21 @@ public final class RaskolScoreboardRenderer {
 
         int width = PANEL_WIDTH;
         int height = 22 + rows.size() * ROW_HEIGHT + 5;
-        int x = graphics.guiWidth() - PANEL_RIGHT_MARGIN - width;
-        int y = PANEL_TOP;
+        int x = graphics.guiWidth() - PANEL_RIGHT_MARGIN - width + offsetX;
+        int y = PANEL_TOP + offsetY;
 
-        drawPanel(graphics, x, y, width, height);
+        drawPanel(graphics, x, y, width, height, opacity);
         String heading = hasContext
                 ? "СВЕДЕНИЯ"
                 : objective == null ? "РАСКОЛ" : fit(font, objective.getDisplayName().getString(), width - 16);
-        graphics.centeredText(font, heading, x + width / 2, y + 5, TITLE);
-        graphics.fill(x + PANEL_PADDING, y + 17, x + width - PANEL_PADDING, y + 18, DIVIDER);
+        graphics.centeredText(font, heading, x + width / 2, y + 5, applyOpacity(TITLE, opacity));
+        graphics.fill(x + PANEL_PADDING, y + 17, x + width - PANEL_PADDING, y + 18, applyOpacity(DIVIDER, opacity));
 
         int rowY = y + 23;
         for (Row row : rows) {
-            graphics.text(font, fit(font, row.label(), 58), x + PANEL_PADDING, rowY, TEXT);
+            graphics.text(font, fit(font, row.label(), 58), x + PANEL_PADDING, rowY, applyOpacity(TEXT, opacity));
             String value = fit(font, row.value(), width - PANEL_PADDING * 2 - 61);
-            graphics.text(font, value, x + width - PANEL_PADDING - font.width(value), rowY, VALUE);
+            graphics.text(font, value, x + width - PANEL_PADDING - font.width(value), rowY, applyOpacity(VALUE, opacity));
             rowY += ROW_HEIGHT;
         }
     }
@@ -160,14 +163,20 @@ public final class RaskolScoreboardRenderer {
             int x,
             int y,
             int width,
-            int height) {
+            int height,
+            int opacity) {
 
-        graphics.fill(x + 1, y + 2, x + width + 1, y + height + 2, SHADOW);
-        graphics.fill(x, y, x + width, y + height, PANEL);
-        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, INNER);
-        graphics.fill(x + 6, y, x + width - 6, y + 1, EDGE);
-        graphics.fill(x, y + 6, x + 1, y + height - 6, EDGE_DARK);
-        graphics.fill(x + width - 1, y + 6, x + width, y + height - 6, EDGE_DARK);
-        graphics.fill(x + 6, y + height - 1, x + width - 6, y + height, EDGE_DARK);
+        graphics.fill(x + 1, y + 2, x + width + 1, y + height + 2, applyOpacity(SHADOW, opacity));
+        graphics.fill(x, y, x + width, y + height, applyOpacity(PANEL, opacity));
+        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, applyOpacity(INNER, opacity));
+        graphics.fill(x + 6, y, x + width - 6, y + 1, applyOpacity(EDGE, opacity));
+        graphics.fill(x, y + 6, x + 1, y + height - 6, applyOpacity(EDGE_DARK, opacity));
+        graphics.fill(x + width - 1, y + 6, x + width, y + height - 6, applyOpacity(EDGE_DARK, opacity));
+        graphics.fill(x + 6, y + height - 1, x + width - 6, y + height, applyOpacity(EDGE_DARK, opacity));
+    }
+
+    private static int applyOpacity(int color, int opacity) {
+        int alpha = (color >>> 24) * Math.max(0, Math.min(100, opacity)) / 100;
+        return (color & 0x00FFFFFF) | (alpha << 24);
     }
 }

@@ -3,6 +3,7 @@ package dev.raskol.hud.client.render;
 import java.util.HashMap;
 import java.util.Map;
 
+import dev.raskol.hud.client.config.HudConfig;
 import dev.raskol.hud.protocol.RaskolHudCooldown;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import net.minecraft.client.Minecraft;
@@ -24,25 +25,50 @@ public final class RaskolHotbarRenderer {
             return;
         }
 
+        float scale = (float) HudConfig.scale();
+        float centerXFloat = graphics.guiWidth() / 2.0F;
+        float centerYFloat = graphics.guiHeight() / 2.0F;
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerXFloat * (1.0F - scale), centerYFloat * (1.0F - scale));
+        graphics.pose().scale(scale, scale);
         int centerX = graphics.guiWidth() / 2;
         int top = graphics.guiHeight() - 22;
         int left = centerX - 91;
         int right = centerX + 91;
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
-        // Ванильные иконки сохраняются; над ними рисуем рамку и классовую подсветку.
-        graphics.fill(left - 2, top - 3, right + 2, top - 2, 0x97100D12);
-        graphics.fill(left - 2, top - 3, left - 1, top + 22, theme.muted());
-        graphics.fill(right + 1, top - 3, right + 2, top + 22, theme.muted());
-        graphics.fill(left - 2, top + 21, right + 2, top + 22, 0xA2100D12);
-        graphics.fill(left + 5, top - 3, right - 5, top - 2, theme.accent());
+        // Многослойная стальная рамка обрамляет ванильные иконки, не закрывая их.
+        int frameTop = top - 7;
+        int frameBottom = top + 25;
+        graphics.fill(left - 9, frameTop + 2, right + 9, frameBottom + 2, 0x9A000000);
+        graphics.fill(left - 8, frameTop, right + 8, frameBottom, 0xFF08090D);
+        graphics.fill(left - 7, frameTop + 1, right + 7, frameBottom - 1, 0xFF80675D);
+        graphics.fill(left - 6, frameTop + 2, right + 6, frameBottom - 2, 0xFF171218);
+        graphics.fill(left - 4, frameTop + 4, right + 4, frameBottom - 4, 0xD50D0B10);
+        graphics.fill(left + 4, frameTop + 2, right - 4, frameTop + 3, withAlpha(theme.highlight(), 210));
+        graphics.fill(left + 4, frameBottom - 3, right - 4, frameBottom - 2, 0xFF59423C);
+        graphics.fill(left - 8, frameTop + 7, left - 7, frameBottom - 7, withAlpha(theme.accent(), 230));
+        graphics.fill(right + 7, frameTop + 7, right + 8, frameBottom - 7, withAlpha(theme.accent(), 230));
+
+        // Девять отдельных ячеек с тёмной внутренней фаской и стальными разделителями.
+        for (int slot = 0; slot < 9; slot++) {
+            int slotX = left + slot * 20;
+            graphics.fill(slotX, top - 2, slotX + 1, top + 20, 0xFF9A7B6A);
+            graphics.fill(slotX + 1, top - 1, slotX + 19, top, 0xA9D0B49A);
+            graphics.fill(slotX + 1, top + 19, slotX + 19, top + 20, 0xA9000000);
+            graphics.fill(slotX + 19, top - 2, slotX + 20, top + 20, 0xFF08070A);
+        }
+        graphics.fill(left - 8, frameTop + 2, left - 3, frameTop + 7, withAlpha(theme.accent(), 240));
+        graphics.fill(right + 3, frameTop + 2, right + 8, frameTop + 7, withAlpha(theme.accent(), 240));
+        graphics.fill(centerX - 2, frameTop - 2, centerX + 3, frameTop + 3, withAlpha(theme.highlight(), 240));
+        graphics.fill(centerX - 1, frameTop - 3, centerX + 2, frameTop + 4, withAlpha(theme.accent(), 220));
 
         int selectedSlot = client.player.getInventory().getSelectedSlot();
         int selectedX = left + selectedSlot * 20;
-        graphics.fill(selectedX, top - 1, selectedX + 20, top, withAlpha(theme.highlight(), 190));
-        graphics.fill(selectedX, top + 19, selectedX + 20, top + 20, withAlpha(theme.accent(), 185));
-        graphics.fill(selectedX, top - 1, selectedX + 1, top + 20, withAlpha(theme.muted(), 165));
-        graphics.fill(selectedX + 19, top - 1, selectedX + 20, top + 20, withAlpha(theme.muted(), 165));
+        graphics.fill(selectedX + 1, top - 1, selectedX + 19, top, withAlpha(theme.highlight(), 210));
+        graphics.fill(selectedX + 1, top + 19, selectedX + 19, top + 20, withAlpha(theme.accent(), 235));
+        graphics.fill(selectedX, top, selectedX + 1, top + 19, withAlpha(theme.highlight(), 210));
+        graphics.fill(selectedX + 19, top, selectedX + 20, top + 19, withAlpha(theme.accent(), 210));
 
         Font font = client.font;
         Map<Integer, RaskolHudCooldown> cooldowns = new HashMap<>();
@@ -66,5 +92,6 @@ public final class RaskolHotbarRenderer {
             int textY = iconY + 4;
             graphics.text(font, label, textX, textY, 0xFFF5EDE4);
         }
+        graphics.pose().popMatrix();
     }
 }

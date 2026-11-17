@@ -1,7 +1,5 @@
 package dev.raskol.hud.protocol;
 
-import java.util.Objects;
-
 /**
  * Серверное состояние одного активного эффекта, предназначенное только для отображения.
  */
@@ -18,12 +16,12 @@ public record RaskolHudEffect(
         id = safe(id);
         displayName = safe(displayName);
         symbol = safe(symbol);
-        remainingSeconds = Math.max(-1, remainingSeconds);
-        durationSeconds = Math.max(0, durationSeconds);
+        remainingSeconds = remainingSeconds < 0 ? -1 : Math.min(86_400, remainingSeconds);
+        durationSeconds = Math.max(0, Math.min(86_400, durationSeconds));
         stacks = Math.max(1, Math.min(99, stacks));
     }
 
     private static String safe(String value) {
-        return Objects.requireNonNullElse(value, "");
+        return RaskolHudText.limit(value);
     }
 }

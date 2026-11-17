@@ -7,21 +7,24 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Ограниченный версионированный бинарный протокол между Paper-мостом и Fabric-клиентом.
  *
- * Пакет состояния: сигнатура, версия, время снимка, данные персонажа и два
- * ограниченных списка боевых состояний. Hello-клиента содержит только версию.
+ * Пакет состояния: сигнатура, версия, время снимка, данные персонажа, эффекты,
+ * перезарядки, боевые характеристики и текущая цель. Hello содержит только версию.
  */
 public final class RaskolHudProtocol {
 
     public static final String HELLO_CHANNEL = "raskolhud:hello";
     public static final String STATE_CHANNEL = "raskolhud:state";
     public static final String SIGNAL_CHANNEL = "raskolhud:signal";
-    public static final int PROTOCOL_VERSION = 5;
+    public static final int PROTOCOL_VERSION = 7;
     public static final int MAX_EFFECTS = 5;
     public static final int MAX_COOLDOWNS = 9;
 
@@ -100,6 +103,8 @@ public final class RaskolHudProtocol {
             writeEffects(out, snapshot.damageOverTime());
             writeEffects(out, snapshot.crowdControl());
             writeCooldowns(out, snapshot.cooldowns());
+            writeCharacterStats(out, snapshot.characterStats());
+            writeTarget(out, snapshot.target());
         }
 
         byte[] packet = bytes.toByteArray();
@@ -125,6 +130,9 @@ public final class RaskolHudProtocol {
             }
 
             long sampledAt = in.readLong();
+            if (sampledAt <= 0L) {
+                throw new IOException("Invalid RaskolHUD snapshot timestamp");
+            }
             String classId = readString(in);
             String className = readString(in);
             String specializationName = readString(in);
@@ -143,6 +151,8 @@ public final class RaskolHudProtocol {
             List<RaskolHudEffect> damageOverTime = readEffects(in);
             List<RaskolHudEffect> crowdControl = readEffects(in);
             List<RaskolHudCooldown> cooldowns = readCooldowns(in);
+            RaskolHudCharacterStats characterStats = readCharacterStats(in);
+            RaskolHudTarget target = readTarget(in);
 
             if (in.available() != 0) {
                 throw new IOException("Unexpected trailing bytes in RaskolHUD packet");
@@ -165,7 +175,9 @@ public final class RaskolHudProtocol {
                     activeEffects,
                     damageOverTime,
                     crowdControl,
-                    cooldowns);
+                    cooldowns,
+                    characterStats,
+                    target);
         } catch (EOFException exception) {
             throw new IOException("Truncated RaskolHUD packet", exception);
         }
@@ -202,7 +214,8 @@ public final class RaskolHudProtocol {
             int stacks = in.readInt();
             boolean harmful = in.readBoolean();
 
-            if (remainingSeconds < -1 || durationSeconds < 0 || stacks < 1 || stacks > 99) {
+            if (remainingSeconds < -1 || remainingSeconds > 86_400
+                    || durationSeconds < 0 || durationSeconds > 86_400 || stacks < 1 || stacks > 99) {
                 throw new IOException("Invalid RaskolHUD combat effect values");
             }
 
@@ -246,6 +259,76 @@ public final class RaskolHudProtocol {
         return List.copyOf(cooldowns);
     }
 
+    private static void writeCharacterStats(DataOutputStream out, RaskolHudCharacterStats stats) throws IOException {
+        RaskolHudCharacterStats value = stats == null ? RaskolHudCharacterStats.UNAVAILABLE : stats;
+        out.writeBoolean(value.available());
+        out.writeDouble(value.physicalResistancePct());
+        out.writeDouble(value.magicResistancePct());
+        out.writeDouble(value.dodgePct());
+        out.writeDouble(value.parryPct());
+        out.writeDouble(value.meleeCritPct());
+        out.writeDouble(value.spellCritPct());
+        out.writeInt(value.availableTalentPoints());
+        out.writeInt(value.spentTalentPoints());
+        out.writeInt(value.earnedTalentPoints());
+    }
+
+    private static RaskolHudCharacterStats readCharacterStats(DataInputStream in) throws IOException {
+        boolean available = in.readBoolean();
+        double physicalResistance = in.readDouble();
+        double magicResistance = in.readDouble();
+        double dodge = in.readDouble();
+        double parry = in.readDouble();
+        double meleeCrit = in.readDouble();
+        double spellCrit = in.readDouble();
+        int availablePoints = in.readInt();
+        int spentPoints = in.readInt();
+        int earnedPoints = in.readInt();
+        if (!Double.isFinite(physicalResistance) || !Double.isFinite(magicResistance)
+                || !Double.isFinite(dodge) || !Double.isFinite(parry)
+                || !Double.isFinite(meleeCrit) || !Double.isFinite(spellCrit)
+                || availablePoints < 0 || spentPoints < 0 || earnedPoints < 0
+                || availablePoints > 10_000 || spentPoints > 10_000 || earnedPoints > 10_000) {
+            throw new IOException("Invalid RaskolHUD character stats");
+        }
+        return new RaskolHudCharacterStats(available, physicalResistance, magicResistance,
+                dodge, parry, meleeCrit, spellCrit, availablePoints, spentPoints, earnedPoints);
+    }
+
+    private static void writeTarget(DataOutputStream out, RaskolHudTarget target) throws IOException {
+        RaskolHudTarget value = target == null ? RaskolHudTarget.UNAVAILABLE : target;
+        out.writeBoolean(value.available());
+        if (!value.available()) {
+            return;
+        }
+        out.writeBoolean(value.player());
+        writeString(out, value.name());
+        writeString(out, value.type());
+        writeString(out, value.className());
+        out.writeInt(value.level());
+        out.writeDouble(value.health());
+        out.writeDouble(value.healthMax());
+    }
+
+    private static RaskolHudTarget readTarget(DataInputStream in) throws IOException {
+        if (!in.readBoolean()) {
+            return RaskolHudTarget.UNAVAILABLE;
+        }
+        boolean player = in.readBoolean();
+        String name = readString(in);
+        String type = readString(in);
+        String className = readString(in);
+        int level = in.readInt();
+        double health = in.readDouble();
+        double healthMax = in.readDouble();
+        if (name.isBlank() || level < 0 || level > 60
+                || !Double.isFinite(health) || !Double.isFinite(healthMax)
+                || health < 0 || healthMax < 0 || health > healthMax) {
+            throw new IOException("Invalid RaskolHUD target snapshot");
+        }
+        return new RaskolHudTarget(true, player, name, type, className, level, health, healthMax);
+    }
+
     private static void writeString(DataOutputStream out, String value) throws IOException {
         byte[] encoded = (value == null ? "" : value).getBytes(StandardCharsets.UTF_8);
         if (encoded.length > MAX_STRING_BYTES) {
@@ -264,7 +347,15 @@ public final class RaskolHudProtocol {
         if (encoded.length != length) {
             throw new EOFException("Truncated RaskolHUD string");
         }
-        return new String(encoded, StandardCharsets.UTF_8);
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(encoded))
+                    .toString();
+        } catch (CharacterCodingException exception) {
+            throw new IOException("Invalid UTF-8 in RaskolHUD packet", exception);
+        }
     }
 
     private static void writeVarInt(DataOutputStream out, int value) throws IOException {

@@ -1,5 +1,6 @@
 package dev.raskol.hud.client.render;
 
+import dev.raskol.hud.client.config.HudConfig;
 import dev.raskol.hud.client.network.CrosshairSignalPayload;
 import dev.raskol.hud.protocol.RaskolHudProtocol.CrosshairSignal;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
@@ -19,6 +20,10 @@ public final class RaskolCrosshairRenderer {
     public static void render(GuiGraphicsExtractor graphics, RaskolHudSnapshot state) {
         int cx = graphics.guiWidth() / 2;
         int cy = graphics.guiHeight() / 2;
+        float scale = (float) HudConfig.scale();
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(cx * (1.0F - scale), cy * (1.0F - scale));
+        graphics.pose().scale(scale, scale);
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
         CrosshairSignalPayload.Pulse pulse = CrosshairSignalPayload.current();
         CrosshairSignal signal = pulse.active() ? pulse.signal() : CrosshairSignal.NONE;
@@ -34,6 +39,7 @@ public final class RaskolCrosshairRenderer {
             case "rogue" -> drawRogue(graphics, cx, cy, idle, active, signal, pulse.strength());
             default -> drawNeutral(graphics, cx, cy, idle);
         }
+        graphics.pose().popMatrix();
     }
 
     private static void drawWarlock(

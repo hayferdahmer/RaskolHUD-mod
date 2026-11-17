@@ -2,7 +2,6 @@ package dev.raskol.hud.protocol;
 
 import java.util.List;
 import java.util.Objects;
-
 /**
  * Неизменяемый снимок состояния персонажа, подготовленный сервером для HUD.
  *
@@ -26,7 +25,9 @@ public record RaskolHudSnapshot(
         List<RaskolHudEffect> activeEffects,
         List<RaskolHudEffect> damageOverTime,
         List<RaskolHudEffect> crowdControl,
-        List<RaskolHudCooldown> cooldowns) {
+        List<RaskolHudCooldown> cooldowns,
+        RaskolHudCharacterStats characterStats,
+        RaskolHudTarget target) {
 
     public RaskolHudSnapshot {
         classId = safe(classId);
@@ -37,7 +38,7 @@ public record RaskolHudSnapshot(
         factionName = safe(factionName);
         titleName = safe(titleName);
 
-        characterLevel = Math.max(0, characterLevel);
+        characterLevel = Math.max(0, Math.min(60, characterLevel));
         healthMax = Math.max(0, healthMax);
         health = clampKnownMaximum(health, healthMax);
         resourceMax = Math.max(0, resourceMax);
@@ -47,10 +48,60 @@ public record RaskolHudSnapshot(
         damageOverTime = safeEffects(damageOverTime);
         crowdControl = safeEffects(crowdControl);
         cooldowns = safeCooldowns(cooldowns);
+        characterStats = characterStats == null ? RaskolHudCharacterStats.UNAVAILABLE : characterStats;
+        target = target == null ? RaskolHudTarget.UNAVAILABLE : target;
+    }
+
+    public RaskolHudSnapshot(
+            long sampledAtEpochMillis,
+            String classId,
+            String className,
+            String specializationName,
+            String resourceName,
+            String resourceSymbol,
+            String factionName,
+            String titleName,
+            int characterLevel,
+            int health,
+            int healthMax,
+            int resource,
+            int resourceMax,
+            List<RaskolHudEffect> activeEffects,
+            List<RaskolHudEffect> damageOverTime,
+            List<RaskolHudEffect> crowdControl,
+            List<RaskolHudCooldown> cooldowns) {
+        this(sampledAtEpochMillis, classId, className, specializationName, resourceName, resourceSymbol,
+                factionName, titleName, characterLevel, health, healthMax, resource, resourceMax,
+                activeEffects, damageOverTime, crowdControl, cooldowns,
+                RaskolHudCharacterStats.UNAVAILABLE, RaskolHudTarget.UNAVAILABLE);
+    }
+
+    public RaskolHudSnapshot(
+            long sampledAtEpochMillis,
+            String classId,
+            String className,
+            String specializationName,
+            String resourceName,
+            String resourceSymbol,
+            String factionName,
+            String titleName,
+            int characterLevel,
+            int health,
+            int healthMax,
+            int resource,
+            int resourceMax,
+            List<RaskolHudEffect> activeEffects,
+            List<RaskolHudEffect> damageOverTime,
+            List<RaskolHudEffect> crowdControl,
+            List<RaskolHudCooldown> cooldowns,
+            RaskolHudCharacterStats characterStats) {
+        this(sampledAtEpochMillis, classId, className, specializationName, resourceName, resourceSymbol,
+                factionName, titleName, characterLevel, health, healthMax, resource, resourceMax,
+                activeEffects, damageOverTime, crowdControl, cooldowns, characterStats, RaskolHudTarget.UNAVAILABLE);
     }
 
     private static String safe(String value) {
-        return Objects.requireNonNullElse(value, "");
+        return RaskolHudText.limit(value);
     }
 
     private static List<RaskolHudEffect> safeEffects(List<RaskolHudEffect> effects) {

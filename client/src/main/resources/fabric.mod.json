@@ -3,7 +3,7 @@
   "id": "raskolhud",
   "version": "${version}",
   "name": "RaskolHUD",
-  "description": "Клиентский HUD сервера РАСКОЛ: класс, специализация, уровень, здоровье и классовый ресурс.",
+  "description": "Настраиваемый клиентский HUD сервера РАСКОЛ.",
   "environment": "client",
   "entrypoints": {
     "client": [

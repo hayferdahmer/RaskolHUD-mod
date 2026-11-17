@@ -39,6 +39,8 @@ import dev.raskol.hud.protocol.CrosshairSignalRules;
 import dev.raskol.hud.protocol.CrosshairSignalRules.DotState;
 import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudCooldown;
+import dev.raskol.hud.protocol.RaskolHudCharacterStats;
+import dev.raskol.hud.protocol.RaskolHudTarget;
 import dev.raskol.hud.protocol.RaskolHudProtocol.CrosshairSignal;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
@@ -350,7 +352,9 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
                     playerEffects,
                     activeDamageOverTime(player.getUniqueId()),
                     activeCrowdControl(player.getUniqueId()),
-                    cooldowns(player));
+                    cooldowns(player),
+                    characterStats(player),
+                    targetSnapshot(player));
 
             player.sendPluginMessage(this, RaskolHudProtocol.STATE_CHANNEL, RaskolHudProtocol.encode(snapshot));
         } catch (IOException | RuntimeException exception) {
@@ -549,6 +553,134 @@ public final class RaskolHudBridgePlugin extends JavaPlugin implements PluginMes
             warnOptionalApi("Could not read the effective class resource maximum", exception);
         }
         return 0;
+    }
+
+    private RaskolHudTarget targetSnapshot(Player viewer) {
+        Entity aimed = viewer.getTargetEntity(32);
+        if (!(aimed instanceof LivingEntity target) || target.isDead() || !target.isValid()) {
+            return RaskolHudTarget.UNAVAILABLE;
+        }
+
+        boolean isPlayer = target instanceof Player;
+        String name = target.getCustomName();
+        if (name == null || name.isBlank()) {
+            name = isPlayer ? ((Player) target).getName()
+                    : target.getType().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        }
+
+        String className = "";
+        int level = 0;
+        double health = 0.0D;
+        double healthMax = 0.0D;
+        if (isPlayer) {
+            Player targetPlayer = (Player) target;
+            className = placeholder(targetPlayer, "class");
+            level = readInt(targetPlayer, "level");
+            health = readInt(targetPlayer, "hp");
+            healthMax = readInt(targetPlayer, "hp_max");
+        } else {
+            health = target.getHealth();
+            var maxHealth = target.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            if (maxHealth != null) {
+                healthMax = maxHealth.getValue();
+            }
+            try {
+                Object provider = invoke(raskolClasses, "getEntityLevelProvider");
+                if (provider != null) {
+                    Object value = invoke(provider, "levelOf", new Class<?>[] {Entity.class}, target);
+                    if (value instanceof Number number) {
+                        level = Math.max(0, Math.min(60, number.intValue()));
+                    }
+                }
+            } catch (ReflectiveOperationException | RuntimeException exception) {
+                warnOptionalApi("Could not read the target entity level", exception);
+            }
+        }
+
+        if (!Double.isFinite(health) || health < 0) {
+            health = 0.0D;
+        }
+        if (!Double.isFinite(healthMax) || healthMax < 0) {
+            healthMax = 0.0D;
+        }
+        if (healthMax > 0) {
+            health = Math.min(health, healthMax);
+        } else {
+            health = 0.0D;
+        }
+
+        return new RaskolHudTarget(
+                true,
+                isPlayer,
+                name,
+                isPlayer ? "Игрок" : target.getType().name(),
+                className,
+                level,
+                health,
+                healthMax);
+    }
+
+    private RaskolHudCharacterStats characterStats(Player player) {
+        String physical = placeholder(player, "phys_resist");
+        String magic = placeholder(player, "magic_resist");
+        String dodge = placeholder(player, "dodge");
+        String parry = placeholder(player, "parry");
+        String meleeCrit = placeholder(player, "crit_melee");
+        String spellCrit = placeholder(player, "crit_spell");
+        String availablePoints = placeholder(player, "talent_points");
+        String talentProgress = placeholder(player, "talents");
+
+        boolean available = !(physical.isBlank() && magic.isBlank() && dodge.isBlank()
+                && parry.isBlank() && meleeCrit.isBlank() && spellCrit.isBlank()
+                && availablePoints.isBlank() && talentProgress.isBlank());
+        if (!available) {
+            return RaskolHudCharacterStats.UNAVAILABLE;
+        }
+
+        int spent = 0;
+        int earned = 0;
+        if (!talentProgress.isBlank()) {
+            String[] parts = talentProgress.split("/", -1);
+            if (parts.length == 2) {
+                spent = parseNonNegativeInt(parts[0]);
+                earned = parseNonNegativeInt(parts[1]);
+            }
+        }
+
+        return new RaskolHudCharacterStats(
+                true,
+                parseDecimal(physical),
+                parseDecimal(magic),
+                parseDecimal(dodge),
+                parseDecimal(parry),
+                parseDecimal(meleeCrit),
+                parseDecimal(spellCrit),
+                parseNonNegativeInt(availablePoints),
+                spent,
+                earned);
+    }
+
+    private static double parseDecimal(String value) {
+        if (value == null || value.isBlank()) {
+            return 0.0D;
+        }
+        try {
+            double parsed = Double.parseDouble(value.replace(',', '.').replace("%", "").trim());
+            return Double.isFinite(parsed) ? parsed : 0.0D;
+        } catch (NumberFormatException exception) {
+            return 0.0D;
+        }
+    }
+
+    private static int parseNonNegativeInt(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(value.trim()));
+        } catch (NumberFormatException exception) {
+            return 0;
+        }
     }
 
     private List<RaskolHudEffect> activeEffects(UUID playerId) {
