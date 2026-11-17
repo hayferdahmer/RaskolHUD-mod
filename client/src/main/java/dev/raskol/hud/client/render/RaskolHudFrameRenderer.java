@@ -52,10 +52,7 @@ public final class RaskolHudFrameRenderer {
         rivet(graphics, x + width - 8, y + 8, a);
         rivet(graphics, x + 8, y + height - 8, a);
         rivet(graphics, x + width - 8, y + height - 8, a);
-        if (width >= 80) {
-            crest(graphics, x + width / 2, y + 4, accent, a);
-        }
-        RaskolHudTextureRenderer.renderPanelFrame(graphics, x, y, width, height, a);
+        // Панель строится в собственных координатах без растягивания орнамента.
     }
 
     public static void hotbarPlate(
@@ -72,8 +69,7 @@ public final class RaskolHudFrameRenderer {
         fill(graphics, x + 8, y + height - 3, x + width - 8, y + height - 2, alpha(accent, a / 2));
         rivet(graphics, x + 5, y + 5, a);
         rivet(graphics, x + width - 5, y + 5, a);
-        crest(graphics, x + width / 2, y + 3, accent, a);
-        RaskolHudTextureRenderer.renderPanelFrame(graphics, x, y, width, height, a);
+        // Центральная часть пластины остаётся свободной, чтобы не задевать предметы.
     }
 
     public static void slot(
