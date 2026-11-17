@@ -37,38 +37,12 @@ public final class RaskolHotbarRenderer {
         int right = centerX + 91;
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
-        // Многослойная стальная рамка обрамляет ванильные иконки, не закрывая их.
-        int frameTop = top - 7;
-        int frameBottom = top + 25;
-        graphics.fill(left - 9, frameTop + 2, right + 9, frameBottom + 2, 0x9A000000);
-        graphics.fill(left - 8, frameTop, right + 8, frameBottom, 0xFF08090D);
-        graphics.fill(left - 7, frameTop + 1, right + 7, frameBottom - 1, 0xFF80675D);
-        graphics.fill(left - 6, frameTop + 2, right + 6, frameBottom - 2, 0xFF171218);
-        graphics.fill(left - 4, frameTop + 4, right + 4, frameBottom - 4, 0xD50D0B10);
-        graphics.fill(left + 4, frameTop + 2, right - 4, frameTop + 3, withAlpha(theme.highlight(), 210));
-        graphics.fill(left + 4, frameBottom - 3, right - 4, frameBottom - 2, 0xFF59423C);
-        graphics.fill(left - 8, frameTop + 7, left - 7, frameBottom - 7, withAlpha(theme.accent(), 230));
-        graphics.fill(right + 7, frameTop + 7, right + 8, frameBottom - 7, withAlpha(theme.accent(), 230));
-
-        // Девять отдельных ячеек с тёмной внутренней фаской и стальными разделителями.
+        // Девять ячеек оформлены тем же готическим металлом, что и панели HUD.
         for (int slot = 0; slot < 9; slot++) {
             int slotX = left + slot * 20;
-            graphics.fill(slotX, top - 2, slotX + 1, top + 20, 0xFF9A7B6A);
-            graphics.fill(slotX + 1, top - 1, slotX + 19, top, 0xA9D0B49A);
-            graphics.fill(slotX + 1, top + 19, slotX + 19, top + 20, 0xA9000000);
-            graphics.fill(slotX + 19, top - 2, slotX + 20, top + 20, 0xFF08070A);
+            boolean selected = slot == client.player.getInventory().getSelectedSlot();
+            RaskolHudFrameRenderer.slot(graphics, slotX, top - 2, 20, theme.accent(), selected, 100);
         }
-        graphics.fill(left - 8, frameTop + 2, left - 3, frameTop + 7, withAlpha(theme.accent(), 240));
-        graphics.fill(right + 3, frameTop + 2, right + 8, frameTop + 7, withAlpha(theme.accent(), 240));
-        graphics.fill(centerX - 2, frameTop - 2, centerX + 3, frameTop + 3, withAlpha(theme.highlight(), 240));
-        graphics.fill(centerX - 1, frameTop - 3, centerX + 2, frameTop + 4, withAlpha(theme.accent(), 220));
-
-        int selectedSlot = client.player.getInventory().getSelectedSlot();
-        int selectedX = left + selectedSlot * 20;
-        graphics.fill(selectedX + 1, top - 1, selectedX + 19, top, withAlpha(theme.highlight(), 210));
-        graphics.fill(selectedX + 1, top + 19, selectedX + 19, top + 20, withAlpha(theme.accent(), 235));
-        graphics.fill(selectedX, top, selectedX + 1, top + 19, withAlpha(theme.highlight(), 210));
-        graphics.fill(selectedX + 19, top, selectedX + 20, top + 19, withAlpha(theme.accent(), 210));
 
         Font font = client.font;
         Map<Integer, RaskolHudCooldown> cooldowns = new HashMap<>();
