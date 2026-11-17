@@ -21,7 +21,7 @@ public final class RaskolHudProtocol {
     public static final String HELLO_CHANNEL = "raskolhud:hello";
     public static final String STATE_CHANNEL = "raskolhud:state";
     public static final String SIGNAL_CHANNEL = "raskolhud:signal";
-    public static final int PROTOCOL_VERSION = 6;
+    public static final int PROTOCOL_VERSION = 7;
     public static final int MAX_EFFECTS = 5;
     public static final int MAX_COOLDOWNS = 9;
 
@@ -101,6 +101,7 @@ public final class RaskolHudProtocol {
             writeEffects(out, snapshot.crowdControl());
             writeCooldowns(out, snapshot.cooldowns());
             writeCharacterStats(out, snapshot.characterStats());
+            writeTarget(out, snapshot.target());
         }
 
         byte[] packet = bytes.toByteArray();
@@ -145,6 +146,7 @@ public final class RaskolHudProtocol {
             List<RaskolHudEffect> crowdControl = readEffects(in);
             List<RaskolHudCooldown> cooldowns = readCooldowns(in);
             RaskolHudCharacterStats characterStats = readCharacterStats(in);
+            RaskolHudTarget target = readTarget(in);
 
             if (in.available() != 0) {
                 throw new IOException("Unexpected trailing bytes in RaskolHUD packet");
@@ -168,7 +170,8 @@ public final class RaskolHudProtocol {
                     damageOverTime,
                     crowdControl,
                     cooldowns,
-                    characterStats);
+                    characterStats,
+                    target);
         } catch (EOFException exception) {
             throw new IOException("Truncated RaskolHUD packet", exception);
         }
@@ -283,6 +286,40 @@ public final class RaskolHudProtocol {
         }
         return new RaskolHudCharacterStats(available, physicalResistance, magicResistance,
                 dodge, parry, meleeCrit, spellCrit, availablePoints, spentPoints, earnedPoints);
+    }
+
+    private static void writeTarget(DataOutputStream out, RaskolHudTarget target) throws IOException {
+        RaskolHudTarget value = target == null ? RaskolHudTarget.UNAVAILABLE : target;
+        out.writeBoolean(value.available());
+        if (!value.available()) {
+            return;
+        }
+        out.writeBoolean(value.player());
+        writeString(out, value.name());
+        writeString(out, value.type());
+        writeString(out, value.className());
+        out.writeInt(value.level());
+        out.writeDouble(value.health());
+        out.writeDouble(value.healthMax());
+    }
+
+    private static RaskolHudTarget readTarget(DataInputStream in) throws IOException {
+        if (!in.readBoolean()) {
+            return RaskolHudTarget.UNAVAILABLE;
+        }
+        boolean player = in.readBoolean();
+        String name = readString(in);
+        String type = readString(in);
+        String className = readString(in);
+        int level = in.readInt();
+        double health = in.readDouble();
+        double healthMax = in.readDouble();
+        if (name.isBlank() || level < 0 || level > 60
+                || !Double.isFinite(health) || !Double.isFinite(healthMax)
+                || health < 0 || healthMax < 0 || health > healthMax) {
+            throw new IOException("Invalid RaskolHUD target snapshot");
+        }
+        return new RaskolHudTarget(true, player, name, type, className, level, health, healthMax);
     }
 
     private static void writeString(DataOutputStream out, String value) throws IOException {
