@@ -14,7 +14,7 @@ import net.minecraft.client.Minecraft;
 /** Локальные настройки внешнего вида HUD. */
 public final class HudConfig {
     private static final String FILE_NAME = "raskolhud.properties";
-    private static final int CONFIG_VERSION = 2;
+    private static final int CONFIG_VERSION = 3;
     private static boolean showIdentity = true;
     private static boolean showStatus = true;
     private static boolean showEffects = true;
