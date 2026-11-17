@@ -67,6 +67,13 @@ final class RaskolHudProtocolTest {
     }
 
     @Test
+    void protocolTextIsLimitedByUtf8BytesWithoutSplittingUnicode() {
+        String limited = RaskolHudText.limit("я".repeat(100));
+        assertEquals(128, limited.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+        assertEquals(64, limited.codePointCount(0, limited.length()));
+    }
+
+    @Test
     void crosshairSignalIdsAreStableAndUnknownIdsAreRejected() {
         assertEquals(1, RaskolHudProtocol.CrosshairSignal.WARLOCK_CURSE.wireId());
         assertEquals(RaskolHudProtocol.CrosshairSignal.MAGE_FROST,
