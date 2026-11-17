@@ -40,6 +40,6 @@ public record RaskolHudTarget(
     }
 
     private static double finiteNonNegative(double value) {
-        return Double.isFinite(value) ? Math.max(0, value) : 0;
+        return Double.isFinite(value) ? Math.max(0, Math.min(1_000_000D, value)) : 0;
     }
 }
