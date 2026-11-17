@@ -21,7 +21,7 @@ public final class RaskolHudProtocol {
     public static final String HELLO_CHANNEL = "raskolhud:hello";
     public static final String STATE_CHANNEL = "raskolhud:state";
     public static final String SIGNAL_CHANNEL = "raskolhud:signal";
-    public static final int PROTOCOL_VERSION = 5;
+    public static final int PROTOCOL_VERSION = 6;
     public static final int MAX_EFFECTS = 5;
     public static final int MAX_COOLDOWNS = 9;
 
@@ -100,6 +100,7 @@ public final class RaskolHudProtocol {
             writeEffects(out, snapshot.damageOverTime());
             writeEffects(out, snapshot.crowdControl());
             writeCooldowns(out, snapshot.cooldowns());
+            writeCharacterStats(out, snapshot.characterStats());
         }
 
         byte[] packet = bytes.toByteArray();
@@ -143,6 +144,7 @@ public final class RaskolHudProtocol {
             List<RaskolHudEffect> damageOverTime = readEffects(in);
             List<RaskolHudEffect> crowdControl = readEffects(in);
             List<RaskolHudCooldown> cooldowns = readCooldowns(in);
+            RaskolHudCharacterStats characterStats = readCharacterStats(in);
 
             if (in.available() != 0) {
                 throw new IOException("Unexpected trailing bytes in RaskolHUD packet");
@@ -165,7 +167,8 @@ public final class RaskolHudProtocol {
                     activeEffects,
                     damageOverTime,
                     crowdControl,
-                    cooldowns);
+                    cooldowns,
+                    characterStats);
         } catch (EOFException exception) {
             throw new IOException("Truncated RaskolHUD packet", exception);
         }
@@ -244,6 +247,42 @@ public final class RaskolHudProtocol {
             cooldowns.add(new RaskolHudCooldown(slot, abilityId, remainingMillis, durationMillis));
         }
         return List.copyOf(cooldowns);
+    }
+
+    private static void writeCharacterStats(DataOutputStream out, RaskolHudCharacterStats stats) throws IOException {
+        RaskolHudCharacterStats value = stats == null ? RaskolHudCharacterStats.UNAVAILABLE : stats;
+        out.writeBoolean(value.available());
+        out.writeDouble(value.physicalResistancePct());
+        out.writeDouble(value.magicResistancePct());
+        out.writeDouble(value.dodgePct());
+        out.writeDouble(value.parryPct());
+        out.writeDouble(value.meleeCritPct());
+        out.writeDouble(value.spellCritPct());
+        out.writeInt(value.availableTalentPoints());
+        out.writeInt(value.spentTalentPoints());
+        out.writeInt(value.earnedTalentPoints());
+    }
+
+    private static RaskolHudCharacterStats readCharacterStats(DataInputStream in) throws IOException {
+        boolean available = in.readBoolean();
+        double physicalResistance = in.readDouble();
+        double magicResistance = in.readDouble();
+        double dodge = in.readDouble();
+        double parry = in.readDouble();
+        double meleeCrit = in.readDouble();
+        double spellCrit = in.readDouble();
+        int availablePoints = in.readInt();
+        int spentPoints = in.readInt();
+        int earnedPoints = in.readInt();
+        if (!Double.isFinite(physicalResistance) || !Double.isFinite(magicResistance)
+                || !Double.isFinite(dodge) || !Double.isFinite(parry)
+                || !Double.isFinite(meleeCrit) || !Double.isFinite(spellCrit)
+                || availablePoints < 0 || spentPoints < 0 || earnedPoints < 0
+                || availablePoints > 10_000 || spentPoints > 10_000 || earnedPoints > 10_000) {
+            throw new IOException("Invalid RaskolHUD character stats");
+        }
+        return new RaskolHudCharacterStats(available, physicalResistance, magicResistance,
+                dodge, parry, meleeCrit, spellCrit, availablePoints, spentPoints, earnedPoints);
     }
 
     private static void writeString(DataOutputStream out, String value) throws IOException {
