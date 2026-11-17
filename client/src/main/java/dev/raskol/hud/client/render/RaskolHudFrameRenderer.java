@@ -28,31 +28,11 @@ public final class RaskolHudFrameRenderer {
         int a = clampAlpha(opacity);
         fill(graphics, x + 3, y + 4, x + width + 3, y + height + 4, alpha(SHADOW, a));
         fill(graphics, x + 2, y, x + width - 2, y + height, alpha(BLACK, a));
-        fill(graphics, x + 1, y + 1, x + width - 1, y + height - 1, alpha(STEEL_DARK, a));
-        fill(graphics, x + 3, y + 2, x + width - 3, y + height - 2, alpha(STEEL, a));
-        fill(graphics, x + 4, y + 3, x + width - 4, y + height - 3, alpha(PANEL, a));
-        fill(graphics, x + 7, y + 6, x + width - 7, y + height - 6, alpha(PANEL_INNER, a));
+        fill(graphics, x + 5, y + 4, x + width - 5, y + height - 4, alpha(PANEL, a));
+        fill(graphics, x + 8, y + 7, x + width - 8, y + height - 7, alpha(PANEL_INNER, a));
 
-        // Верхняя и нижняя кромки имеют разный свет, чтобы металл не выглядел плоским.
-        fill(graphics, x + 9, y + 3, x + width - 9, y + 4, alpha(STEEL_LIGHT, a));
-        fill(graphics, x + 9, y + height - 4, x + width - 9, y + height - 3, alpha(BLACK, a));
-        fill(graphics, x + 4, y + 9, x + 5, y + height - 9, alpha(STEEL_LIGHT, a));
-        fill(graphics, x + width - 5, y + 9, x + width - 4, y + height - 9, alpha(BLACK, a));
-
-        // Внутренний цветной кант и угловые вырезы задают силуэт гербовой пластины.
-        fill(graphics, x + 10, y + 5, x + width - 10, y + 6, alpha(accent, a));
-        fill(graphics, x + 10, y + height - 6, x + width - 10, y + height - 5, alpha(accent, a / 2));
-        corner(graphics, x + 5, y + 5, accent, a, false, false);
-        corner(graphics, x + width - 5, y + 5, accent, a, true, false);
-        corner(graphics, x + 5, y + height - 5, accent, a, false, true);
-        corner(graphics, x + width - 5, y + height - 5, accent, a, true, true);
-
-        // Заклёпки и центральный знак — отдельные пиксельные детали, а не сплошные линии.
-        rivet(graphics, x + 8, y + 8, a);
-        rivet(graphics, x + width - 8, y + 8, a);
-        rivet(graphics, x + 8, y + height - 8, a);
-        rivet(graphics, x + width - 8, y + height - 8, a);
-        // Панель строится в собственных координатах без растягивания орнамента.
+        // Прозрачная PNG-оправа рисуется поверх подложки без деформации углов.
+        RaskolHudTextureRenderer.renderPanelFrame(graphics, x, y, width, height, a);
     }
 
     public static void hotbarPlate(
