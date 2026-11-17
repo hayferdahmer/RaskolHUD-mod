@@ -46,11 +46,11 @@ public final class RaskolHotbarRenderer {
         for (int slot = 0; slot < 9; slot++) {
             int slotX = left + slot * 20;
             boolean selected = slot == client.player.getInventory().getSelectedSlot();
-            RaskolHudFrameRenderer.slot(graphics, slotX, top - 2, 20, theme.accent(), selected, 100);
+            RaskolHudFrameRenderer.slot(graphics, slotX, top, 20, theme.accent(), selected, 100);
             if (selected && selectionPulse > 0.0F) {
                 int pulseAlpha = (int) (90.0F * selectionPulse);
-                graphics.fill(slotX + 2, top - 1, slotX + 18, top, withAlpha(theme.highlight(), pulseAlpha));
-                graphics.fill(slotX + 2, top + 17, slotX + 18, top + 18, withAlpha(theme.highlight(), pulseAlpha));
+                graphics.fill(slotX + 2, top, slotX + 18, top + 1, withAlpha(theme.highlight(), pulseAlpha));
+                graphics.fill(slotX + 2, top + 19, slotX + 18, top + 20, withAlpha(theme.highlight(), pulseAlpha));
             }
         }
 
