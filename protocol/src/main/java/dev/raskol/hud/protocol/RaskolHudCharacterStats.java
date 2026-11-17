@@ -26,9 +26,9 @@ public record RaskolHudCharacterStats(
         parryPct = clamp(parryPct, 0, 100);
         meleeCritPct = clamp(meleeCritPct, 0, 100);
         spellCritPct = clamp(spellCritPct, 0, 100);
-        availableTalentPoints = Math.max(0, availableTalentPoints);
-        spentTalentPoints = Math.max(0, spentTalentPoints);
-        earnedTalentPoints = Math.max(0, earnedTalentPoints);
+        availableTalentPoints = Math.max(0, Math.min(10_000, availableTalentPoints));
+        spentTalentPoints = Math.max(0, Math.min(10_000, spentTalentPoints));
+        earnedTalentPoints = Math.max(0, Math.min(10_000, earnedTalentPoints));
     }
 
     private static double clamp(double value, double min, double max) {
