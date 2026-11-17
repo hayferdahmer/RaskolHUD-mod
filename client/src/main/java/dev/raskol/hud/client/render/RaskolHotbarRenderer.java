@@ -42,10 +42,16 @@ public final class RaskolHotbarRenderer {
                 theme.accent(), 100);
 
         // Девять ячеек оформлены тем же готическим металлом, что и панели HUD.
+        float selectionPulse = RaskolHudMotion.selectedSlotPulse(client.player.getInventory().getSelectedSlot());
         for (int slot = 0; slot < 9; slot++) {
             int slotX = left + slot * 20;
             boolean selected = slot == client.player.getInventory().getSelectedSlot();
             RaskolHudFrameRenderer.slot(graphics, slotX, top - 2, 20, theme.accent(), selected, 100);
+            if (selected && selectionPulse > 0.0F) {
+                int pulseAlpha = (int) (90.0F * selectionPulse);
+                graphics.fill(slotX + 2, top - 1, slotX + 18, top, withAlpha(theme.highlight(), pulseAlpha));
+                graphics.fill(slotX + 2, top + 17, slotX + 18, top + 18, withAlpha(theme.highlight(), pulseAlpha));
+            }
         }
 
         // Золотистый орнамент взят из выбранного фэнтези-концепта №4.
