@@ -28,6 +28,10 @@ public final class HudConfig {
     private static int effectsY;
     private static int connectionX;
     private static int connectionY;
+    private static int identityOpacity = 100;
+    private static int statusOpacity = 100;
+    private static int effectsOpacity = 100;
+    private static int connectionOpacity = 100;
 
     private HudConfig() {}
 
@@ -57,6 +61,10 @@ public final class HudConfig {
             effectsY = readOffset(properties, "effectsY");
             connectionX = readOffset(properties, "connectionX");
             connectionY = readOffset(properties, "connectionY");
+            identityOpacity = readPercent(properties, "identityOpacity");
+            statusOpacity = readPercent(properties, "statusOpacity");
+            effectsOpacity = readPercent(properties, "effectsOpacity");
+            connectionOpacity = readPercent(properties, "connectionOpacity");
         } catch (IOException exception) {
             System.err.println("[RaskolHUD] Не удалось прочитать настройки: " + exception.getMessage());
         }
@@ -80,6 +88,10 @@ public final class HudConfig {
         properties.setProperty("effectsY", Integer.toString(effectsY));
         properties.setProperty("connectionX", Integer.toString(connectionX));
         properties.setProperty("connectionY", Integer.toString(connectionY));
+        properties.setProperty("identityOpacity", Integer.toString(identityOpacity));
+        properties.setProperty("statusOpacity", Integer.toString(statusOpacity));
+        properties.setProperty("effectsOpacity", Integer.toString(effectsOpacity));
+        properties.setProperty("connectionOpacity", Integer.toString(connectionOpacity));
 
         Path path = configPath();
         try {
@@ -101,8 +113,27 @@ public final class HudConfig {
         return value == null ? fallback : Boolean.parseBoolean(value);
     }
 
-    private static int readOffset(Properties properties, String key) {\n        try { return Math.max(-500, Math.min(500, Integer.parseInt(properties.getProperty(key, "0")))); }\n        catch (NumberFormatException ignored) { return 0; }\n    }\n\n    private static double parseDouble(String value, double fallback) {
-        if (value == null) return fallback;
+    private static int readOffset(Properties properties, String key) {
+        try {
+            return Math.max(-500, Math.min(500, Integer.parseInt(properties.getProperty(key, "0"))));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private static int readPercent(Properties properties, String key) {
+        try {
+            int value = Integer.parseInt(properties.getProperty(key, "100"));
+            return Math.max(20, Math.min(100, value - value % 20));
+        } catch (NumberFormatException ignored) {
+            return 100;
+        }
+    }
+
+    private static double parseDouble(String value, double fallback) {
+        if (value == null) {
+            return fallback;
+        }
         try {
             return Double.parseDouble(value);
         } catch (NumberFormatException ignored) {
@@ -114,6 +145,10 @@ public final class HudConfig {
         return Math.max(min, Math.min(max, value));
     }
 
+    private static int offset(int value, int delta) {
+        return Math.max(-500, Math.min(500, value + delta));
+    }
+
     public static boolean showIdentity() { return showIdentity; }
     public static boolean showStatus() { return showStatus; }
     public static boolean showEffects() { return showEffects; }
@@ -121,7 +156,62 @@ public final class HudConfig {
     public static boolean showScoreboard() { return showScoreboard; }
     public static boolean showHotbarFrame() { return showHotbarFrame; }
     public static boolean showClassCrosshair() { return showClassCrosshair; }
-    public static double scale() { return scale; }\n    public static int identityX() { return identityX; }\n    public static int identityY() { return identityY; }\n    public static int statusX() { return statusX; }\n    public static int statusY() { return statusY; }\n    public static int effectsX() { return effectsX; }\n    public static int effectsY() { return effectsY; }\n    public static int connectionX() { return connectionX; }\n    public static int connectionY() { return connectionY; }\n\n    public static void move(String panel, int dx, int dy) {\n        switch (panel) {\n            case "identity" -> { identityX = offset(identityX, dx); identityY = offset(identityY, dy); }\n            case "status" -> { statusX = offset(statusX, dx); statusY = offset(statusY, dy); }\n            case "effects" -> { effectsX = offset(effectsX, dx); effectsY = offset(effectsY, dy); }\n            case "connection" -> { connectionX = offset(connectionX, dx); connectionY = offset(connectionY, dy); }\n            default -> { return; }\n        }\n        save();\n    }\n\n    private static int offset(int value, int delta) { return Math.max(-500, Math.min(500, value + delta)); }
+    public static double scale() { return scale; }
+    public static int identityX() { return identityX; }
+    public static int identityY() { return identityY; }
+    public static int statusX() { return statusX; }
+    public static int statusY() { return statusY; }
+    public static int effectsX() { return effectsX; }
+    public static int effectsY() { return effectsY; }
+    public static int connectionX() { return connectionX; }
+    public static int connectionY() { return connectionY; }
+
+    public static int opacity(String panel) {
+        return switch (panel) {
+            case "identity" -> identityOpacity;
+            case "status" -> statusOpacity;
+            case "effects" -> effectsOpacity;
+            case "connection" -> connectionOpacity;
+            default -> 100;
+        };
+    }
+
+    public static void move(String panel, int dx, int dy) {
+        switch (panel) {
+            case "identity" -> { identityX = offset(identityX, dx); identityY = offset(identityY, dy); }
+            case "status" -> { statusX = offset(statusX, dx); statusY = offset(statusY, dy); }
+            case "effects" -> { effectsX = offset(effectsX, dx); effectsY = offset(effectsY, dy); }
+            case "connection" -> { connectionX = offset(connectionX, dx); connectionY = offset(connectionY, dy); }
+            default -> { return; }
+        }
+        save();
+    }
+
+    public static void resetPosition(String panel) {
+        switch (panel) {
+            case "identity" -> { identityX = 0; identityY = 0; }
+            case "status" -> { statusX = 0; statusY = 0; }
+            case "effects" -> { effectsX = 0; effectsY = 0; }
+            case "connection" -> { connectionX = 0; connectionY = 0; }
+            default -> { return; }
+        }
+        save();
+    }
+
+    public static void cycleOpacity(String panel) {
+        switch (panel) {
+            case "identity" -> identityOpacity = nextOpacity(identityOpacity);
+            case "status" -> statusOpacity = nextOpacity(statusOpacity);
+            case "effects" -> effectsOpacity = nextOpacity(effectsOpacity);
+            case "connection" -> connectionOpacity = nextOpacity(connectionOpacity);
+            default -> { return; }
+        }
+        save();
+    }
+
+    private static int nextOpacity(int current) {
+        return current <= 20 ? 100 : current - 20;
+    }
 
     public static void toggleIdentity() { showIdentity = !showIdentity; save(); }
     public static void toggleStatus() { showStatus = !showStatus; save(); }
@@ -144,7 +234,9 @@ public final class HudConfig {
         showScoreboard = true;
         showHotbarFrame = true;
         showClassCrosshair = true;
-        scale = 1.0D;\n        identityX = identityY = statusX = statusY = effectsX = effectsY = connectionX = connectionY = 0;
+        scale = 1.0D;
+        identityX = identityY = statusX = statusY = effectsX = effectsY = connectionX = connectionY = 0;
+        identityOpacity = statusOpacity = effectsOpacity = connectionOpacity = 100;
         save();
     }
 }
