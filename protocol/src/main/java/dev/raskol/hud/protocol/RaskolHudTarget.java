@@ -1,7 +1,5 @@
 package dev.raskol.hud.protocol;
 
-import java.util.Objects;
-
 /** Серверный снимок существа, на которое сейчас смотрит игрок. */
 public record RaskolHudTarget(
         boolean available,
