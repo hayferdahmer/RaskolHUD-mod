@@ -173,7 +173,7 @@ public final class RaskolHudRenderer {
         int width = TARGET_WIDTH;
         int height = 62;
         int x = screenWidth - width - 10;
-        int y = 60;
+        int y = 150;
         RaskolClassTheme theme = RaskolClassTheme.forClass("");
         drawFrame(graphics, x, y, width, height, withAlpha(theme.accent(), 170));
         text(graphics, font, "ЦЕЛЬ", x + 7, y + 5, MUTED);
