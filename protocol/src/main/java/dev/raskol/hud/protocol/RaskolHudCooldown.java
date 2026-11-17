@@ -1,7 +1,5 @@
 package dev.raskol.hud.protocol;
 
-import java.util.Objects;
-
 /** Снимок перезарядки способности в конкретном слоте хотбара. */
 public record RaskolHudCooldown(int slot, String abilityId, int remainingMillis, int durationMillis) {
 
