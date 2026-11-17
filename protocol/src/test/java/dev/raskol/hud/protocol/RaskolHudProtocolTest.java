@@ -64,6 +64,9 @@ final class RaskolHudProtocolTest {
                 RaskolHudProtocol.decode(RaskolHudProtocol.encode(snapshot())).target());
         assertEquals(20.0, new RaskolHudTarget(true, false, "Скелет", "SKELETON", "", 18, 30, 20)
                 .health());
+        assertEquals(0.0, new RaskolHudTarget(true, false, "Скелет", "SKELETON", "", 18, 10, 0)
+                .health());
+        assertFalse(new RaskolHudTarget(true, false, "", "SKELETON", "", 18, 10, 20).available());
     }
 
     @Test
@@ -71,6 +74,9 @@ final class RaskolHudProtocolTest {
         String limited = RaskolHudText.limit("я".repeat(100));
         assertEquals(128, limited.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
         assertEquals(64, limited.codePointCount(0, limited.length()));
+        String emojiLimited = RaskolHudText.limit("😀".repeat(100));
+        assertEquals(128, emojiLimited.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+        assertEquals(32, emojiLimited.codePointCount(0, emojiLimited.length()));
     }
 
     @Test
