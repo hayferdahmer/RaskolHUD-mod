@@ -37,12 +37,15 @@ public final class HudConfig {
     private static int combatStatsY;
     private static int targetX;
     private static int targetY;
+    private static int scoreboardX;
+    private static int scoreboardY;
     private static int identityOpacity = 100;
     private static int statusOpacity = 100;
     private static int effectsOpacity = 100;
     private static int connectionOpacity = 100;
     private static int combatStatsOpacity = 100;
     private static int targetOpacity = 100;
+    private static int scoreboardOpacity = 100;
 
     private HudConfig() {}
 
@@ -84,12 +87,15 @@ public final class HudConfig {
             combatStatsY = readOffset(properties, "combatStatsY");
             targetX = readOffset(properties, "targetX");
             targetY = readOffset(properties, "targetY");
+            scoreboardX = readOffset(properties, "scoreboardX");
+            scoreboardY = readOffset(properties, "scoreboardY");
             identityOpacity = readPercent(properties, "identityOpacity");
             statusOpacity = readPercent(properties, "statusOpacity");
             effectsOpacity = readPercent(properties, "effectsOpacity");
             connectionOpacity = readPercent(properties, "connectionOpacity");
             combatStatsOpacity = readPercent(properties, "combatStatsOpacity");
             targetOpacity = readPercent(properties, "targetOpacity");
+            scoreboardOpacity = readPercent(properties, "scoreboardOpacity");
         } catch (IOException | IllegalArgumentException exception) {
             System.err.println("[RaskolHUD] Не удалось прочитать настройки; восстановлены значения по умолчанию: "
                     + exception.getMessage());
@@ -126,12 +132,15 @@ public final class HudConfig {
         properties.setProperty("combatStatsY", Integer.toString(combatStatsY));
         properties.setProperty("targetX", Integer.toString(targetX));
         properties.setProperty("targetY", Integer.toString(targetY));
+        properties.setProperty("scoreboardX", Integer.toString(scoreboardX));
+        properties.setProperty("scoreboardY", Integer.toString(scoreboardY));
         properties.setProperty("identityOpacity", Integer.toString(identityOpacity));
         properties.setProperty("statusOpacity", Integer.toString(statusOpacity));
         properties.setProperty("effectsOpacity", Integer.toString(effectsOpacity));
         properties.setProperty("connectionOpacity", Integer.toString(connectionOpacity));
         properties.setProperty("combatStatsOpacity", Integer.toString(combatStatsOpacity));
         properties.setProperty("targetOpacity", Integer.toString(targetOpacity));
+        properties.setProperty("scoreboardOpacity", Integer.toString(scoreboardOpacity));
 
         Path path = configPath();
         Path temporary = path.resolveSibling(FILE_NAME + ".tmp");
@@ -204,6 +213,8 @@ public final class HudConfig {
     public static int combatStatsY() { return combatStatsY; }
     public static int targetX() { return targetX; }
     public static int targetY() { return targetY; }
+    public static int scoreboardX() { return scoreboardX; }
+    public static int scoreboardY() { return scoreboardY; }
 
     public static int opacity(String panel) {
         return switch (panel) {
@@ -213,6 +224,7 @@ public final class HudConfig {
             case "connection" -> connectionOpacity;
             case "combatStats" -> combatStatsOpacity;
             case "target" -> targetOpacity;
+            case "scoreboard" -> scoreboardOpacity;
             default -> 100;
         };
     }
@@ -225,6 +237,7 @@ public final class HudConfig {
             case "connection" -> { connectionX = offset(connectionX, dx); connectionY = offset(connectionY, dy); }
             case "combatStats" -> { combatStatsX = offset(combatStatsX, dx); combatStatsY = offset(combatStatsY, dy); }
             case "target" -> { targetX = offset(targetX, dx); targetY = offset(targetY, dy); }
+            case "scoreboard" -> { scoreboardX = offset(scoreboardX, dx); scoreboardY = offset(scoreboardY, dy); }
             default -> { return; }
         }
         save();
@@ -238,6 +251,7 @@ public final class HudConfig {
             case "connection" -> { connectionX = 0; connectionY = 0; }
             case "combatStats" -> { combatStatsX = 0; combatStatsY = 0; }
             case "target" -> { targetX = 0; targetY = 0; }
+            case "scoreboard" -> { scoreboardX = 0; scoreboardY = 0; }
             default -> { return; }
         }
         save();
@@ -251,6 +265,7 @@ public final class HudConfig {
             case "connection" -> connectionOpacity = nextOpacity(connectionOpacity);
             case "combatStats" -> combatStatsOpacity = nextOpacity(combatStatsOpacity);
             case "target" -> targetOpacity = nextOpacity(targetOpacity);
+            case "scoreboard" -> scoreboardOpacity = nextOpacity(scoreboardOpacity);
             default -> { return; }
         }
         save();
@@ -287,9 +302,9 @@ public final class HudConfig {
         showTarget = true;
         scale = 1.0D;
         identityX = identityY = statusX = statusY = effectsX = effectsY = connectionX = connectionY = 0;
-        combatStatsX = combatStatsY = targetX = targetY = 0;
+        combatStatsX = combatStatsY = targetX = targetY = scoreboardX = scoreboardY = 0;
         combatStatsY = 0;
-        identityOpacity = statusOpacity = effectsOpacity = connectionOpacity = combatStatsOpacity = targetOpacity = 100;
+        identityOpacity = statusOpacity = effectsOpacity = connectionOpacity = combatStatsOpacity = targetOpacity = scoreboardOpacity = 100;
         save();
     }
 }
