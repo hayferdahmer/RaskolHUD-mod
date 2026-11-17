@@ -7,8 +7,8 @@ import net.minecraft.network.chat.Component;
 
 /** Экран персонализации интерфейса РАСКОЛ. */
 public final class HudConfigScreen extends Screen {
-    private static final String[] MOVABLE_PANELS = {"identity", "status", "effects", "connection", "combatStats", "target"};
-    private static final String[] MOVABLE_LABELS = {"raskolhud.config.panel.identity", "raskolhud.config.panel.status", "raskolhud.config.panel.effects", "raskolhud.config.panel.connection", "raskolhud.config.panel.stats", "raskolhud.config.panel.target"};
+    private static final String[] MOVABLE_PANELS = {"identity", "status", "effects", "connection", "combatStats", "target", "scoreboard"};
+    private static final String[] MOVABLE_LABELS = {"raskolhud.config.panel.identity", "raskolhud.config.panel.status", "raskolhud.config.panel.effects", "raskolhud.config.panel.connection", "raskolhud.config.panel.stats", "raskolhud.config.panel.target", "raskolhud.config.panel.scoreboard"};
     private static final int BUTTON_HEIGHT = 20;
     private static final int GAP = 8;
     private static final int COLUMN_GAP = 12;
