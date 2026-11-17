@@ -1,5 +1,7 @@
 package dev.raskol.hud.client;
 
+import dev.raskol.hud.client.config.HudConfig;
+import dev.raskol.hud.client.config.HudConfigScreen;
 import dev.raskol.hud.client.network.CrosshairSignalPayload;
 import dev.raskol.hud.client.network.HelloPayload;
 import dev.raskol.hud.client.network.HudStateStore;
@@ -9,17 +11,21 @@ import dev.raskol.hud.client.render.RaskolHotbarRenderer;
 import dev.raskol.hud.client.render.RaskolCrosshairRenderer;
 import dev.raskol.hud.protocol.RaskolHudProtocol;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.resources.Identifier;
+import net.minecraft.client.KeyMapping;
+import org.lwjgl.glfw.GLFW;
 
-public final class RaskolHudClient implements ClientModInitializer {
+public final class RaskolHudClient implements ClientModInitializer {\n\n    private static final KeyMapping OPEN_SETTINGS = KeyMappingHelper.registerKeyMapping(\n            new KeyMapping("key.raskolhud.open_settings", GLFW.GLFW_KEY_RIGHT_SHIFT, KeyMapping.Category.MISC));
 
     @Override
-    public void onInitializeClient() {
+    public void onInitializeClient() {\n        HudConfig.load();\n        ClientTickEvents.END_CLIENT_TICK.register(client -> {\n            while (OPEN_SETTINGS.consumeClick()) {\n                client.gui.setScreen(new HudConfigScreen(client.gui.screen()));\n            }\n        });
         PayloadTypeRegistry.serverboundPlay().register(HelloPayload.TYPE, HelloPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(StatePayload.TYPE, StatePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CrosshairSignalPayload.TYPE, CrosshairSignalPayload.CODEC);
