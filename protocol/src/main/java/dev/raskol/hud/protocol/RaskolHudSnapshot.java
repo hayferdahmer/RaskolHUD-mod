@@ -27,7 +27,8 @@ public record RaskolHudSnapshot(
         List<RaskolHudEffect> damageOverTime,
         List<RaskolHudEffect> crowdControl,
         List<RaskolHudCooldown> cooldowns,
-        RaskolHudCharacterStats characterStats) {
+        RaskolHudCharacterStats characterStats,
+        RaskolHudTarget target) {
 
     public RaskolHudSnapshot {
         classId = safe(classId);
@@ -49,6 +50,7 @@ public record RaskolHudSnapshot(
         crowdControl = safeEffects(crowdControl);
         cooldowns = safeCooldowns(cooldowns);
         characterStats = characterStats == null ? RaskolHudCharacterStats.UNAVAILABLE : characterStats;
+        target = target == null ? RaskolHudTarget.UNAVAILABLE : target;
     }
 
     public RaskolHudSnapshot(
@@ -71,7 +73,32 @@ public record RaskolHudSnapshot(
             List<RaskolHudCooldown> cooldowns) {
         this(sampledAtEpochMillis, classId, className, specializationName, resourceName, resourceSymbol,
                 factionName, titleName, characterLevel, health, healthMax, resource, resourceMax,
-                activeEffects, damageOverTime, crowdControl, cooldowns, RaskolHudCharacterStats.UNAVAILABLE);
+                activeEffects, damageOverTime, crowdControl, cooldowns,
+                RaskolHudCharacterStats.UNAVAILABLE, RaskolHudTarget.UNAVAILABLE);
+    }
+
+    public RaskolHudSnapshot(
+            long sampledAtEpochMillis,
+            String classId,
+            String className,
+            String specializationName,
+            String resourceName,
+            String resourceSymbol,
+            String factionName,
+            String titleName,
+            int characterLevel,
+            int health,
+            int healthMax,
+            int resource,
+            int resourceMax,
+            List<RaskolHudEffect> activeEffects,
+            List<RaskolHudEffect> damageOverTime,
+            List<RaskolHudEffect> crowdControl,
+            List<RaskolHudCooldown> cooldowns,
+            RaskolHudCharacterStats characterStats) {
+        this(sampledAtEpochMillis, classId, className, specializationName, resourceName, resourceSymbol,
+                factionName, titleName, characterLevel, health, healthMax, resource, resourceMax,
+                activeEffects, damageOverTime, crowdControl, cooldowns, characterStats, RaskolHudTarget.UNAVAILABLE);
     }
 
     private static String safe(String value) {
