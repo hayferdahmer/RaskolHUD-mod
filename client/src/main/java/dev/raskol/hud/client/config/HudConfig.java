@@ -20,6 +20,7 @@ public final class HudConfig {
     private static boolean showHotbarFrame = true;
     private static boolean showClassCrosshair = true;
     private static boolean showCombatStats = true;
+    private static boolean showTarget = true;
     private static double scale = 1.0D;
     private static int identityX;
     private static int identityY;
@@ -31,11 +32,14 @@ public final class HudConfig {
     private static int connectionY;
     private static int combatStatsX;
     private static int combatStatsY;
+    private static int targetX;
+    private static int targetY;
     private static int identityOpacity = 100;
     private static int statusOpacity = 100;
     private static int effectsOpacity = 100;
     private static int connectionOpacity = 100;
-    private static int combatStatsOpacity = 100;
+    private static int combatStatsOpacity = targetOpacity = 100;
+    private static int targetOpacity = 100;
 
     private HudConfig() {}
 
@@ -57,6 +61,7 @@ public final class HudConfig {
             showHotbarFrame = readBoolean(properties, "showHotbarFrame", true);
             showClassCrosshair = readBoolean(properties, "showClassCrosshair", true);
             showCombatStats = readBoolean(properties, "showCombatStats", true);
+            showTarget = readBoolean(properties, "showTarget", true);
             scale = clamp(parseDouble(properties.getProperty("scale"), 1.0D), 0.75D, 1.50D);
             identityX = readOffset(properties, "identityX");
             identityY = readOffset(properties, "identityY");
@@ -68,11 +73,14 @@ public final class HudConfig {
             connectionY = readOffset(properties, "connectionY");
             combatStatsX = readOffset(properties, "combatStatsX");
             combatStatsY = readOffset(properties, "combatStatsY");
+            targetX = readOffset(properties, "targetX");
+            targetY = readOffset(properties, "targetY");
             identityOpacity = readPercent(properties, "identityOpacity");
             statusOpacity = readPercent(properties, "statusOpacity");
             effectsOpacity = readPercent(properties, "effectsOpacity");
             connectionOpacity = readPercent(properties, "connectionOpacity");
             combatStatsOpacity = readPercent(properties, "combatStatsOpacity");
+            targetOpacity = readPercent(properties, "targetOpacity");
         } catch (IOException exception) {
             System.err.println("[RaskolHUD] Не удалось прочитать настройки: " + exception.getMessage());
         }
@@ -88,6 +96,7 @@ public final class HudConfig {
         properties.setProperty("showHotbarFrame", Boolean.toString(showHotbarFrame));
         properties.setProperty("showClassCrosshair", Boolean.toString(showClassCrosshair));
         properties.setProperty("showCombatStats", Boolean.toString(showCombatStats));
+        properties.setProperty("showTarget", Boolean.toString(showTarget));
         properties.setProperty("scale", Double.toString(scale));
         properties.setProperty("identityX", Integer.toString(identityX));
         properties.setProperty("identityY", Integer.toString(identityY));
@@ -99,11 +108,14 @@ public final class HudConfig {
         properties.setProperty("connectionY", Integer.toString(connectionY));
         properties.setProperty("combatStatsX", Integer.toString(combatStatsX));
         properties.setProperty("combatStatsY", Integer.toString(combatStatsY));
+        properties.setProperty("targetX", Integer.toString(targetX));
+        properties.setProperty("targetY", Integer.toString(targetY));
         properties.setProperty("identityOpacity", Integer.toString(identityOpacity));
         properties.setProperty("statusOpacity", Integer.toString(statusOpacity));
         properties.setProperty("effectsOpacity", Integer.toString(effectsOpacity));
         properties.setProperty("connectionOpacity", Integer.toString(connectionOpacity));
         properties.setProperty("combatStatsOpacity", Integer.toString(combatStatsOpacity));
+        properties.setProperty("targetOpacity", Integer.toString(targetOpacity));
 
         Path path = configPath();
         try {
@@ -171,6 +183,7 @@ public final class HudConfig {
     public static boolean showHotbarFrame() { return showHotbarFrame; }
     public static boolean showClassCrosshair() { return showClassCrosshair; }
     public static boolean showCombatStats() { return showCombatStats; }
+    public static boolean showTarget() { return showTarget; }
     public static double scale() { return scale; }
     public static int identityX() { return identityX; }
     public static int identityY() { return identityY; }
@@ -182,6 +195,8 @@ public final class HudConfig {
     public static int connectionY() { return connectionY; }
     public static int combatStatsX() { return combatStatsX; }
     public static int combatStatsY() { return combatStatsY; }
+    public static int targetX() { return targetX; }
+    public static int targetY() { return targetY; }
 
     public static int opacity(String panel) {
         return switch (panel) {
@@ -190,6 +205,7 @@ public final class HudConfig {
             case "effects" -> effectsOpacity;
             case "connection" -> connectionOpacity;
             case "combatStats" -> combatStatsOpacity;
+            case "target" -> targetOpacity;
             default -> 100;
         };
     }
@@ -201,6 +217,7 @@ public final class HudConfig {
             case "effects" -> { effectsX = offset(effectsX, dx); effectsY = offset(effectsY, dy); }
             case "connection" -> { connectionX = offset(connectionX, dx); connectionY = offset(connectionY, dy); }
             case "combatStats" -> { combatStatsX = offset(combatStatsX, dx); combatStatsY = offset(combatStatsY, dy); }
+            case "target" -> { targetX = offset(targetX, dx); targetY = offset(targetY, dy); }
             default -> { return; }
         }
         save();
@@ -212,7 +229,8 @@ public final class HudConfig {
             case "status" -> { statusX = 0; statusY = 0; }
             case "effects" -> { effectsX = 0; effectsY = 0; }
             case "connection" -> { connectionX = 0; connectionY = 0; }
-            case "combatStats" -> { combatStatsX = 0; combatStatsY = 0; }
+            case "combatStats" -> { combatStatsX = targetX = targetY = 0; combatStatsY = 0; }
+            case "target" -> { targetX = 0; targetY = 0; }
             default -> { return; }
         }
         save();
@@ -225,6 +243,7 @@ public final class HudConfig {
             case "effects" -> effectsOpacity = nextOpacity(effectsOpacity);
             case "connection" -> connectionOpacity = nextOpacity(connectionOpacity);
             case "combatStats" -> combatStatsOpacity = nextOpacity(combatStatsOpacity);
+            case "target" -> targetOpacity = nextOpacity(targetOpacity);
             default -> { return; }
         }
         save();
@@ -242,6 +261,7 @@ public final class HudConfig {
     public static void toggleHotbarFrame() { showHotbarFrame = !showHotbarFrame; save(); }
     public static void toggleClassCrosshair() { showClassCrosshair = !showClassCrosshair; save(); }
     public static void toggleCombatStats() { showCombatStats = !showCombatStats; save(); }
+    public static void toggleTarget() { showTarget = !showTarget; save(); }
 
     public static void cycleScale() {
         scale = scale >= 1.49D ? 0.75D : Math.min(1.50D, scale + 0.25D);
@@ -257,6 +277,7 @@ public final class HudConfig {
         showHotbarFrame = true;
         showClassCrosshair = true;
         showCombatStats = true;
+        showTarget = true;
         scale = 1.0D;
         identityX = identityY = statusX = statusY = effectsX = effectsY = connectionX = connectionY = combatStatsX = 0;
         combatStatsY = 0;
