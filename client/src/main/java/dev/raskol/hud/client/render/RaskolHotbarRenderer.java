@@ -37,6 +37,10 @@ public final class RaskolHotbarRenderer {
         int right = centerX + 91;
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
+        // Общая опорная пластина объединяет девять слотов в одну деталь интерфейса.
+        RaskolHudFrameRenderer.panel(graphics, left - 9, top - 9, right - left + 18, 36,
+                theme.accent(), 100);
+
         // Девять ячеек оформлены тем же готическим металлом, что и панели HUD.
         for (int slot = 0; slot < 9; slot++) {
             int slotX = left + slot * 20;
