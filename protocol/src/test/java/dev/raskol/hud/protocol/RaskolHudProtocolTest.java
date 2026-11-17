@@ -32,7 +32,8 @@ final class RaskolHudProtocolTest {
                 List.of(new RaskolHudEffect("bleed", "Кровотечение", "⚔", 3, 4, 2, true)),
                 List.of(new RaskolHudEffect("STUN", "Оцепенение", "✣", 2, 3, 1, true)),
                 List.of(new RaskolHudCooldown(2, "shield_bash", 1500, 8000)),
-                new RaskolHudCharacterStats(true, 12.5, 8.0, 6.5, 4.0, 18.5, 22.0, 2, 8, 10));
+                new RaskolHudCharacterStats(true, 12.5, 8.0, 6.5, 4.0, 18.5, 22.0, 2, 8, 10),
+                new RaskolHudTarget(true, true, "Игрок", "Игрок", "Воин", 42, 750, 1000));
 
         assertEquals(expected, RaskolHudProtocol.decode(RaskolHudProtocol.encode(expected)));
     }
@@ -48,6 +49,21 @@ final class RaskolHudProtocolTest {
         assertEquals(stats, RaskolHudProtocol.decode(RaskolHudProtocol.encode(value)).characterStats());
         assertEquals(60.0, new RaskolHudCharacterStats(true, 90, 90, 150, -1, 200, 200, -1, 2, 3)
                 .physicalResistancePct());
+    }
+
+    @Test
+    void targetSnapshotRoundTripsAndRejectsInvalidHealth() throws Exception {
+        RaskolHudTarget target = new RaskolHudTarget(true, false, "Скелет", "SKELETON", "", 18, 12.5, 20);
+        RaskolHudSnapshot value = new RaskolHudSnapshot(
+                1L, "hunter", "Охотник", "Следопыт", "Концентрация", "➶",
+                "", "", 40, 500, 600, 40, 100, List.of(), List.of(), List.of(), List.of(),
+                RaskolHudCharacterStats.UNAVAILABLE, target);
+
+        assertEquals(target, RaskolHudProtocol.decode(RaskolHudProtocol.encode(value)).target());
+        assertEquals(RaskolHudTarget.UNAVAILABLE,
+                RaskolHudProtocol.decode(RaskolHudProtocol.encode(snapshot())).target());
+        assertThrows(IllegalArgumentException.class,
+                () -> new RaskolHudTarget(true, false, "Скелет", "SKELETON", "", 18, 30, 20));
     }
 
     @Test
