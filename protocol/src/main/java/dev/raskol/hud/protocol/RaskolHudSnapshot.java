@@ -26,7 +26,8 @@ public record RaskolHudSnapshot(
         List<RaskolHudEffect> activeEffects,
         List<RaskolHudEffect> damageOverTime,
         List<RaskolHudEffect> crowdControl,
-        List<RaskolHudCooldown> cooldowns) {
+        List<RaskolHudCooldown> cooldowns,
+        RaskolHudCharacterStats characterStats) {
 
     public RaskolHudSnapshot {
         classId = safe(classId);
@@ -47,6 +48,30 @@ public record RaskolHudSnapshot(
         damageOverTime = safeEffects(damageOverTime);
         crowdControl = safeEffects(crowdControl);
         cooldowns = safeCooldowns(cooldowns);
+        characterStats = characterStats == null ? RaskolHudCharacterStats.UNAVAILABLE : characterStats;
+    }
+
+    public RaskolHudSnapshot(
+            long sampledAtEpochMillis,
+            String classId,
+            String className,
+            String specializationName,
+            String resourceName,
+            String resourceSymbol,
+            String factionName,
+            String titleName,
+            int characterLevel,
+            int health,
+            int healthMax,
+            int resource,
+            int resourceMax,
+            List<RaskolHudEffect> activeEffects,
+            List<RaskolHudEffect> damageOverTime,
+            List<RaskolHudEffect> crowdControl,
+            List<RaskolHudCooldown> cooldowns) {
+        this(sampledAtEpochMillis, classId, className, specializationName, resourceName, resourceSymbol,
+                factionName, titleName, characterLevel, health, healthMax, resource, resourceMax,
+                activeEffects, damageOverTime, crowdControl, cooldowns, RaskolHudCharacterStats.UNAVAILABLE);
     }
 
     private static String safe(String value) {
