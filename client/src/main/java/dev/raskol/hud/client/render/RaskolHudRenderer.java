@@ -9,6 +9,7 @@ import dev.raskol.hud.client.config.HudConfig;
 import dev.raskol.hud.client.network.HudStateStore;
 import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudCharacterStats;
+import dev.raskol.hud.protocol.RaskolHudTarget;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -42,6 +43,7 @@ public final class RaskolHudRenderer {
     private static final int IDENTITY_HEIGHT = 42;
     private static final int STATUS_WIDTH = 216;
     private static final int STATS_WIDTH = 154;
+    private static final int TARGET_WIDTH = 168;
     private static final int STATUS_HEIGHT = 38;
     private static final int HOTBAR_GAP = 22;
 
@@ -85,6 +87,10 @@ public final class RaskolHudRenderer {
             drawAtOffset(graphics, HudConfig.effectsX(), HudConfig.effectsY(), HudConfig.opacity("effects"),
                     () -> drawCrowdControl(graphics, font, state, graphics.guiWidth(),
                             graphics.guiHeight() - HOTBAR_GAP - STATUS_HEIGHT - 19));
+        }
+        if (HudConfig.showTarget() && state.target().available()) {
+            drawAtOffset(graphics, HudConfig.targetX(), HudConfig.targetY(), HudConfig.opacity("target"),
+                    () -> drawTarget(graphics, font, state.target(), graphics.guiWidth()));
         }
         if (HudConfig.showCombatStats() && state.characterStats().available()) {
             drawAtOffset(graphics, HudConfig.combatStatsX(), HudConfig.combatStatsY(), HudConfig.opacity("combatStats"),
@@ -153,6 +159,31 @@ public final class RaskolHudRenderer {
             int specX = x + 42 + font.width(className);
             int available = right - 8 - specX;
             text(graphics, font, fit(font, specText, Math.max(0, available)), specX, y + 23, SECONDARY);
+        }
+    }
+
+    private static void drawTarget(
+            GuiGraphicsExtractor graphics, Font font, RaskolHudTarget target, int screenWidth) {
+        int width = TARGET_WIDTH;
+        int height = 62;
+        int x = screenWidth - width - 10;
+        int y = 60;
+        RaskolClassTheme theme = RaskolClassTheme.forClass("");
+        drawFrame(graphics, x, y, width, height, withAlpha(theme.accent(), 170));
+        text(graphics, font, "ЦЕЛЬ", x + 7, y + 5, MUTED);
+        if (target.level() > 0) {
+            drawRightAligned(graphics, font, "УР. " + target.level(), x + width - 7, y + 5, theme.highlight());
+        }
+        text(graphics, font, fit(font, target.name(), width - 14), x + 7, y + 17, TEXT);
+        String descriptor = target.player() && !target.className().isBlank()
+                ? target.className() : target.type();
+        text(graphics, font, fit(font, descriptor, width - 14), x + 7, y + 29, SECONDARY);
+        if (target.healthMax() > 0) {
+            String health = String.format(Locale.ROOT, "%.0f / %.0f", target.health(), target.healthMax());
+            drawRightAligned(graphics, font, health, x + width - 7, y + 41, TEXT);
+            drawBar(graphics, x + 7, y + 53, width - 14, 3,
+                    (int) Math.round(target.health()), (int) Math.round(target.healthMax()),
+                    withAlpha(HEALTH, 220), HEALTH_HIGHLIGHT);
         }
     }
 
