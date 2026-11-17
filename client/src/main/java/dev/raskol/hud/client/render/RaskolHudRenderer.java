@@ -262,6 +262,7 @@ public final class RaskolHudRenderer {
         fill(graphics, x + 24, y + 28, x + 29, y + 29, 0xFF59423C);
         fill(graphics, x + 12, y - 1, x + 16, y + 1, withAlpha(HEALTH_HIGHLIGHT, 220));
         fill(graphics, x + 12, y + 27, x + 16, y + 29, withAlpha(theme.highlight(), 220));
+        RaskolHudTextureRenderer.renderPortraitFrame(graphics, x - 2, y - 2, 32, 32, activeOpacity);
     }
 
     private static void drawBottomStatus(
@@ -427,6 +428,7 @@ public final class RaskolHudRenderer {
                         withAlpha(0xFF080609, 100));
             }
         }
+        RaskolHudTextureRenderer.renderBarFrame(graphics, x - 1, y - 1, width + 2, height + 2, activeOpacity);
     }
 
     private static void drawAnimatedBar(
@@ -453,6 +455,7 @@ public final class RaskolHudRenderer {
                         withAlpha(0xFFFFFFFF, (int) Math.round(45 * motion.pulse())));
             }
         }
+        RaskolHudTextureRenderer.renderBarFrame(graphics, x - 1, y - 1, width + 2, height + 2, activeOpacity);
     }
 
     private static void drawDecorativeRule(

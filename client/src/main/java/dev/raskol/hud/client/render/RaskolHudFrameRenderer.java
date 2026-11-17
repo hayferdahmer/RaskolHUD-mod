@@ -55,6 +55,7 @@ public final class RaskolHudFrameRenderer {
         if (width >= 80) {
             crest(graphics, x + width / 2, y + 4, accent, a);
         }
+        RaskolHudTextureRenderer.renderPanelFrame(graphics, x, y, width, height, a);
     }
 
     public static void hotbarPlate(
@@ -72,6 +73,7 @@ public final class RaskolHudFrameRenderer {
         rivet(graphics, x + 5, y + 5, a);
         rivet(graphics, x + width - 5, y + 5, a);
         crest(graphics, x + width / 2, y + 3, accent, a);
+        RaskolHudTextureRenderer.renderPanelFrame(graphics, x, y, width, height, a);
     }
 
     public static void slot(
@@ -85,6 +87,7 @@ public final class RaskolHudFrameRenderer {
         fill(graphics, x + 2, y + 2, x + size - 2, y + 3, alpha(selected ? accent : STEEL, a));
         fill(graphics, x + 2, y + size - 3, x + size - 2, y + size - 2,
                 alpha(selected ? accent : STEEL_DARK, a));
+        RaskolHudTextureRenderer.renderSlotFrame(graphics, x, y, size, a);
         if (selected) {
             fill(graphics, x + 1, y + 1, x + 2, y + size - 1, alpha(accent, a));
             fill(graphics, x + size - 2, y + 1, x + size - 1, y + size - 1, alpha(accent, a));
