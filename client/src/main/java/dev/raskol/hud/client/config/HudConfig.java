@@ -58,7 +58,7 @@ public final class HudConfig {
             properties.load(reader);
             int storedVersion = parseInt(properties.getProperty("configVersion"), 1);
             if (storedVersion > CONFIG_VERSION) {
-                System.err.println("[RaskolHUD] Конфиг создан более новой версией мода; неизвестные параметры будут сохранены при следующей записи.");
+                System.err.println("[RaskolHUD] Конфиг создан более новой версией мода; неизвестные параметры могут быть потеряны при сохранении.");
             }
             showIdentity = readBoolean(properties, "showIdentity", true);
             showStatus = readBoolean(properties, "showStatus", true);
