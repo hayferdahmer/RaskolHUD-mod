@@ -49,6 +49,12 @@ public final class RaskolHudRenderer {
 
     private static final NumberFormat NUMBER_FORMAT =
             NumberFormat.getIntegerInstance(Locale.forLanguageTag("ru-RU"));
+    private static final NumberFormat PERCENT_FORMAT = NumberFormat.getNumberInstance(Locale.forLanguageTag("ru-RU"));
+
+    static {
+        PERCENT_FORMAT.setMinimumFractionDigits(1);
+        PERCENT_FORMAT.setMaximumFractionDigits(1);
+    }
 
     private RaskolHudRenderer() {}
 
@@ -179,7 +185,8 @@ public final class RaskolHudRenderer {
                 ? target.className() : target.type();
         text(graphics, font, fit(font, descriptor, width - 14), x + 7, y + 29, SECONDARY);
         if (target.healthMax() > 0) {
-            String health = String.format(Locale.ROOT, "%.0f / %.0f", target.health(), target.healthMax());
+            String health = NUMBER_FORMAT.format(Math.round(target.health())) + " / "
+                    + NUMBER_FORMAT.format(Math.round(target.healthMax()));
             drawRightAligned(graphics, font, health, x + width - 7, y + 41, TEXT);
             drawBar(graphics, x + 7, y + 53, width - 14, 3,
                     (int) Math.round(target.health()), (int) Math.round(target.healthMax()),
@@ -216,7 +223,7 @@ public final class RaskolHudRenderer {
     private static void drawStatLine(
             GuiGraphicsExtractor graphics, Font font, String label, double value, int x, int y) {
         text(graphics, font, label, x, y, SECONDARY);
-        String formatted = String.format(Locale.ROOT, "%.1f%%", value);
+        String formatted = PERCENT_FORMAT.format(value) + "%";
         drawRightAligned(graphics, font, formatted, x + STATS_WIDTH - 14, y, TEXT);
     }
 
