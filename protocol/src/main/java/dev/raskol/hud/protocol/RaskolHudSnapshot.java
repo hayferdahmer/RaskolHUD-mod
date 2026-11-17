@@ -1,8 +1,6 @@
 package dev.raskol.hud.protocol;
 
 import java.util.List;
-import java.util.Objects;
-
 /**
  * Неизменяемый снимок состояния персонажа, подготовленный сервером для HUD.
  *
