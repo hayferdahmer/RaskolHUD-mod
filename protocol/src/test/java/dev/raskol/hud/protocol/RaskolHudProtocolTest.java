@@ -156,6 +156,24 @@ final class RaskolHudProtocolTest {
     }
 
     @Test
+    void decoderRejectsTrailingBytesAndOversizedPackets() throws Exception {
+        byte[] valid = RaskolHudProtocol.encode(snapshot());
+        byte[] withTrailing = java.util.Arrays.copyOf(valid, valid.length + 1);
+        assertThrows(IOException.class, () -> RaskolHudProtocol.decode(withTrailing));
+        assertThrows(IOException.class, () -> RaskolHudProtocol.decode(new byte[4097]));
+    }
+
+    @Test
+    void modelStringsAreBoundedBeforeEncoding() throws Exception {
+        String longName = "я".repeat(100);
+        RaskolHudSnapshot value = new RaskolHudSnapshot(
+                1L, "mage", longName, "Лёд", "Мана", "✦",
+                "", "", 40, 500, 600, 40, 100, List.of(), List.of(), List.of(), List.of());
+        RaskolHudSnapshot decoded = RaskolHudProtocol.decode(RaskolHudProtocol.encode(value));
+        assertEquals(128, decoded.className().getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+    }
+
+    @Test
     void decoderRejectsTruncatedPacket() {
         assertThrows(IOException.class, () -> RaskolHudProtocol.decode(new byte[] {1, 2, 3}));
     }
