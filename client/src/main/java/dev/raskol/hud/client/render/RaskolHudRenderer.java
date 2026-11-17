@@ -67,21 +67,32 @@ public final class RaskolHudRenderer {
         graphics.pose().translate((float) (centerX * (1.0D - scale)), (float) (centerY * (1.0D - scale)));
         graphics.pose().scale((float) scale, (float) scale);
         if (HudConfig.showIdentity()) {
-            drawIdentity(graphics, font, player, state);
+            drawAtOffset(graphics, HudConfig.identityX(), HudConfig.identityY(),
+                    () -> drawIdentity(graphics, font, player, state));
         }
         if (HudConfig.showConnection()) {
-            drawConnection(graphics, font, graphics.guiWidth());
+            drawAtOffset(graphics, HudConfig.connectionX(), HudConfig.connectionY(),
+                    () -> drawConnection(graphics, font, graphics.guiWidth()));
         }
         if (HudConfig.showStatus()) {
-            drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight());
+            drawAtOffset(graphics, HudConfig.statusX(), HudConfig.statusY(),
+                    () -> drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight()));
         }
         if (HudConfig.showEffects()) {
-            drawCrowdControl(graphics, font, state, graphics.guiWidth(),
-                    graphics.guiHeight() - HOTBAR_GAP - STATUS_HEIGHT - 19);
+            drawAtOffset(graphics, HudConfig.effectsX(), HudConfig.effectsY(),
+                    () -> drawCrowdControl(graphics, font, state, graphics.guiWidth(),
+                            graphics.guiHeight() - HOTBAR_GAP - STATUS_HEIGHT - 19));
         }
         if (HudConfig.showScoreboard()) {
             RaskolScoreboardRenderer.render(graphics, font, client, state);
         }
+        graphics.pose().popMatrix();
+    }
+
+    private static void drawAtOffset(GuiGraphicsExtractor graphics, int x, int y, Runnable render) {
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y);
+        render.run();
         graphics.pose().popMatrix();
     }
 
