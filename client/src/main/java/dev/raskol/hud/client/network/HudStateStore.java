@@ -15,6 +15,7 @@ public final class HudStateStore {
 
     private static volatile RaskolHudSnapshot current;
     private static volatile long lastReceivedAtMillis;
+    private static volatile long lastSampledAtEpochMillis;
     private static volatile boolean warnedInvalidPacket;
 
     private HudStateStore() {}
@@ -22,7 +23,11 @@ public final class HudStateStore {
     public static void accept(byte[] packet) {
         try {
             RaskolHudSnapshot decoded = RaskolHudProtocol.decode(packet);
+            if (decoded.sampledAtEpochMillis() <= lastSampledAtEpochMillis) {
+                return;
+            }
             current = decoded;
+            lastSampledAtEpochMillis = decoded.sampledAtEpochMillis();
             lastReceivedAtMillis = System.currentTimeMillis();
             warnedInvalidPacket = false;
         } catch (IOException | IllegalArgumentException exception) {
@@ -44,6 +49,7 @@ public final class HudStateStore {
     public static void clear() {
         current = null;
         lastReceivedAtMillis = 0L;
+        lastSampledAtEpochMillis = 0L;
         warnedInvalidPacket = false;
     }
 }
