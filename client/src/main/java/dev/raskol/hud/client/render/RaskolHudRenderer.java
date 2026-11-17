@@ -75,6 +75,10 @@ public final class RaskolHudRenderer {
         if (HudConfig.showStatus()) {
             drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight());
         }
+        if (HudConfig.showEffects()) {
+            drawCrowdControl(graphics, font, state, graphics.guiWidth(),
+                    graphics.guiHeight() - HOTBAR_GAP - STATUS_HEIGHT - 19);
+        }
         if (HudConfig.showScoreboard()) {
             RaskolScoreboardRenderer.render(graphics, font, client, state);
         }
@@ -161,9 +165,6 @@ public final class RaskolHudRenderer {
         int columnWidth = half - 14;
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
-        if (HudConfig.showEffects()) {
-            drawCrowdControl(graphics, font, state, screenWidth, y - 19);
-        }
         drawFrame(graphics, x, y, width, STATUS_HEIGHT, withAlpha(theme.accent(), 190));
         graphics.fill(x + half, y + 6, x + half + 1, y + STATUS_HEIGHT - 6, DIVIDER);
 
