@@ -4,7 +4,7 @@ plugins {
 
 allprojects {
     group = "dev.raskol.hud"
-    version = "0.9.0-SNAPSHOT"
+    version = "1.0.0-rc.1"
 
     repositories {
         mavenCentral()
