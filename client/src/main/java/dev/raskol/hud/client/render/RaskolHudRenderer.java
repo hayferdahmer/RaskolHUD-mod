@@ -103,7 +103,8 @@ public final class RaskolHudRenderer {
                     () -> drawCombatStats(graphics, font, state.characterStats(), state.classId()));
         }
         if (HudConfig.showScoreboard()) {
-            RaskolScoreboardRenderer.render(graphics, font, client, state);
+            RaskolScoreboardRenderer.render(graphics, font, client, state,
+                    HudConfig.scoreboardX(), HudConfig.scoreboardY(), HudConfig.opacity("scoreboard"));
         }
         graphics.pose().popMatrix();
     }
