@@ -36,7 +36,7 @@ public record RaskolHudTarget(
     }
 
     private static String safe(String value) {
-        return Objects.requireNonNullElse(value, "");
+        return RaskolHudText.limit(value);
     }
 
     private static double finiteNonNegative(double value) {
