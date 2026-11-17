@@ -32,7 +32,7 @@ public final class HudConfigScreen extends Screen {
         addToggle(right, top + row * (BUTTON_HEIGHT + GAP), "Индикатор связи", HudConfig::showConnection, HudConfig::toggleConnection);
         row++;
         addToggle(left, top + row * (BUTTON_HEIGHT + GAP), "Фракция и scoreboard", HudConfig::showScoreboard, HudConfig::toggleScoreboard);
-        addToggle(right, top + row * (BUTTON_HEIGHT + GAP), "Рамка хотбара", HudConfig::showHotbarFrame, HudConfig::toggleHotbarFrame);
+        addToggle(right, top + row * (BUTTON_HEIGHT + GAP), "Оформление хотбара и КД", HudConfig::showHotbarFrame, HudConfig::toggleHotbarFrame);
         row++;
         addToggle(left, top + row * (BUTTON_HEIGHT + GAP), "Классовый прицел", HudConfig::showClassCrosshair, HudConfig::toggleClassCrosshair);
         addRenderableWidget(Button.builder(scaleLabel(), button -> {
