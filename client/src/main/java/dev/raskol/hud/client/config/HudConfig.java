@@ -88,8 +88,10 @@ public final class HudConfig {
             connectionOpacity = readPercent(properties, "connectionOpacity");
             combatStatsOpacity = readPercent(properties, "combatStatsOpacity");
             targetOpacity = readPercent(properties, "targetOpacity");
-        } catch (IOException exception) {
-            System.err.println("[RaskolHUD] Не удалось прочитать настройки: " + exception.getMessage());
+        } catch (IOException | IllegalArgumentException exception) {
+            System.err.println("[RaskolHUD] Не удалось прочитать настройки; восстановлены значения по умолчанию: "
+                    + exception.getMessage());
+            reset();
         }
     }
 
