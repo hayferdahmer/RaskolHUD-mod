@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -12,6 +14,7 @@ import net.minecraft.client.Minecraft;
 /** Локальные настройки внешнего вида HUD. */
 public final class HudConfig {
     private static final String FILE_NAME = "raskolhud.properties";
+    private static final int CONFIG_VERSION = 2;
     private static boolean showIdentity = true;
     private static boolean showStatus = true;
     private static boolean showEffects = true;
@@ -53,6 +56,10 @@ public final class HudConfig {
         Properties properties = new Properties();
         try (Reader reader = Files.newBufferedReader(path)) {
             properties.load(reader);
+            int storedVersion = parseInt(properties.getProperty("configVersion"), 1);
+            if (storedVersion > CONFIG_VERSION) {
+                System.err.println("[RaskolHUD] Конфиг создан более новой версией мода; неизвестные параметры будут сохранены при следующей записи.");
+            }
             showIdentity = readBoolean(properties, "showIdentity", true);
             showStatus = readBoolean(properties, "showStatus", true);
             showEffects = readBoolean(properties, "showEffects", true);
@@ -88,6 +95,7 @@ public final class HudConfig {
 
     public static void save() {
         Properties properties = new Properties();
+        properties.setProperty("configVersion", Integer.toString(CONFIG_VERSION));
         properties.setProperty("showIdentity", Boolean.toString(showIdentity));
         properties.setProperty("showStatus", Boolean.toString(showStatus));
         properties.setProperty("showEffects", Boolean.toString(showEffects));
@@ -118,12 +126,23 @@ public final class HudConfig {
         properties.setProperty("targetOpacity", Integer.toString(targetOpacity));
 
         Path path = configPath();
+        Path temporary = path.resolveSibling(FILE_NAME + ".tmp");
         try {
             Files.createDirectories(path.getParent());
-            try (Writer writer = Files.newBufferedWriter(path)) {
+            try (Writer writer = Files.newBufferedWriter(temporary)) {
                 properties.store(writer, "RaskolHUD client settings");
             }
+            try {
+                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException exception) {
+            try {
+                Files.deleteIfExists(temporary);
+            } catch (IOException ignored) {
+                // Повторная очистка временного файла не должна скрывать исходную ошибку.
+            }
             System.err.println("[RaskolHUD] Не удалось сохранить настройки: " + exception.getMessage());
         }
     }
@@ -135,6 +154,11 @@ public final class HudConfig {
     private static boolean readBoolean(Properties properties, String key, boolean fallback) {
         String value = properties.getProperty(key);
         return value == null ? fallback : Boolean.parseBoolean(value);
+    }
+
+    private static int parseInt(String value, int fallback) {
+        try { return value == null ? fallback : Integer.parseInt(value.trim()); }
+        catch (NumberFormatException ignored) { return fallback; }
     }
 
     private static int readOffset(Properties properties, String key) { return readOffset(properties, key, 0); }
