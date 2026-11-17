@@ -1,5 +1,7 @@
 # RaskolHUD
 
+> Текущая сборка `1.0.0-rc.1` — Release Candidate для проверки. Это не финальный релиз; ручная приёмка ещё обязательна.
+
 История изменений и чек-лист приёмки: [CHANGELOG.md](CHANGELOG.md).  
 План разработки до 1.0.0: [ROADMAP_1.0.0.md](ROADMAP_1.0.0.md).  
 Полная матрица приёмки: [docs/ACCEPTANCE_1.0.0.md](docs/ACCEPTANCE_1.0.0.md).  
@@ -115,7 +117,7 @@
 Из корня репозитория при наличии JDK 25:
 
 ```bash
-gradle :protocol:test :client:build :bridge:build
+gradle :protocol:test :client:test :client:build :bridge:build
 ```
 
 Артефакты:
