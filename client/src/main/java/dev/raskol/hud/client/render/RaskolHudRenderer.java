@@ -415,6 +415,7 @@ public final class RaskolHudRenderer {
         fill(graphics, x + 1, y + 1, x + width - 1, y + height - 1, TRACK);
         if (maximum <= 0 || current <= 0) {
             fill(graphics, x + 1, y + 1, x + width - 1, y + 2, 0x704C3D3A);
+            RaskolHudTextureRenderer.renderBarFrame(graphics, x - 1, y - 1, width + 2, height + 2, activeOpacity);
             return;
         }
         double fraction = Math.max(0.0, Math.min(1.0, (double) current / maximum));

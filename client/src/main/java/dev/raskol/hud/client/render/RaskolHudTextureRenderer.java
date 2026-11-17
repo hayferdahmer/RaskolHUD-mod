@@ -48,14 +48,15 @@ public final class RaskolHudTextureRenderer {
             int width, int height, int textureWidth, int textureHeight, int opacity) {
         int alpha = Math.max(0, Math.min(100, opacity)) * 255 / 100;
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0F, 0.0F,
-                width, height, textureWidth, textureHeight, (alpha << 24) | 0x00FFFFFF);
+                width, height, textureWidth, textureHeight, textureWidth, textureHeight,
+                (alpha << 24) | 0x00FFFFFF);
     }
 
     public static void renderRaskolCrest(
             GuiGraphicsExtractor graphics, int x, int y, int width, int height, int opacity) {
         int alpha = Math.max(0, Math.min(100, opacity)) * 255 / 100;
         graphics.blit(RenderPipelines.GUI_TEXTURED, RASKOL_CREST, x, y, 0.0F, 0.0F,
-                width, height, 64, 67, (alpha << 24) | 0x00FFFFFF);
+                width, height, 64, 67, 64, 67, (alpha << 24) | 0x00FFFFFF);
     }
 
     public static void renderFantasyHotbarOrnament(
@@ -71,6 +72,8 @@ public final class RaskolHudTextureRenderer {
                 0.0F,
                 width,
                 height,
+                256,
+                18,
                 256,
                 18,
                 tint);
