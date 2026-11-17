@@ -371,37 +371,7 @@ public final class RaskolHudRenderer {
             int width,
             int height,
             int accent) {
-
-        // Тёмная подложка, двойная стальная окантовка и внутренний контур.
-        fill(graphics, x + 3, y + 3, x + width + 3, y + height + 3, SHADOW);
-        fill(graphics, x, y, x + width, y + height, 0xFF08090D);
-        fill(graphics, x + 1, y + 1, x + width - 1, y + height - 1, 0xFF75605A);
-        fill(graphics, x + 2, y + 2, x + width - 2, y + height - 2, FRAME);
-        fill(graphics, x + 4, y + 4, x + width - 4, y + height - 4, INNER);
-        fill(graphics, x + 7, y + 2, x + width - 7, y + 3, 0xFFD0B49A);
-        fill(graphics, x + 7, y + height - 3, x + width - 7, y + height - 2, EDGE_DARK);
-        fill(graphics, x + 2, y + 7, x + 3, y + height - 7, 0xFF80665A);
-        fill(graphics, x + width - 3, y + 7, x + width - 2, y + height - 7, EDGE_DARK);
-        fill(graphics, x + 8, y + 4, x + width - 8, y + 5, accent);
-        // Угловые шипы и заклёпки создают характерную готическую геометрию.
-        int corner = Math.min(7, Math.max(3, height / 4));
-        for (int side = 0; side < 2; side++) {
-            int cx = side == 0 ? x + 3 : x + width - 4;
-            fill(graphics, cx, y + 3, cx + 1, y + corner + 2, accent);
-            fill(graphics, cx, y + height - corner - 2, cx + 1, y + height - 3, accent);
-            fill(graphics, cx - 1, y + 3, cx + 2, y + 4, 0xFFE0C4A5);
-            fill(graphics, cx - 1, y + height - 4, cx + 2, y + height - 3, 0xFFE0C4A5);
-        }
-        drawGem(graphics, x + width / 2, y + 2, accent);
-        drawGem(graphics, x + 4, y + height / 2, accent);
-        drawGem(graphics, x + width - 4, y + height / 2, accent);
-    }
-
-    private static void drawGem(GuiGraphicsExtractor graphics, int cx, int cy, int accent) {
-        fill(graphics, cx - 3, cy - 1, cx + 4, cy + 2, 0xFF050509);
-        fill(graphics, cx - 2, cy - 2, cx + 3, cy + 3, accent);
-        fill(graphics, cx - 1, cy - 3, cx + 2, cy + 4, accent);
-        fill(graphics, cx - 1, cy - 1, cx + 1, cy + 1, 0xFFFFD8B0);
+        RaskolHudFrameRenderer.panel(graphics, x, y, width, height, accent, activeOpacity);
     }
 
     private static void drawConnection(GuiGraphicsExtractor graphics, Font font, int screenWidth) {
