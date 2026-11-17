@@ -57,20 +57,37 @@ public final class RaskolHudFrameRenderer {
         }
     }
 
+    public static void hotbarPlate(
+            GuiGraphicsExtractor graphics, int x, int y, int width, int height, int accent, int opacity) {
+        int a = clampAlpha(opacity);
+        // Только внешний контур: центральная область остаётся прозрачной для предметов хотбара.
+        fill(graphics, x + 3, y + 3, x + width - 3, y + 4, alpha(SHADOW, a));
+        fill(graphics, x + 3, y + height - 4, x + width - 3, y + height - 3, alpha(SHADOW, a));
+        fill(graphics, x + 2, y + 1, x + width - 2, y + 2, alpha(BLACK, a));
+        fill(graphics, x + 2, y + height - 2, x + width - 2, y + height - 1, alpha(BLACK, a));
+        fill(graphics, x + 1, y + 4, x + 2, y + height - 4, alpha(STEEL_LIGHT, a));
+        fill(graphics, x + width - 2, y + 4, x + width - 1, y + height - 4, alpha(BLACK, a));
+        fill(graphics, x + 8, y + 2, x + width - 8, y + 3, alpha(accent, a));
+        fill(graphics, x + 8, y + height - 3, x + width - 8, y + height - 2, alpha(accent, a / 2));
+        rivet(graphics, x + 5, y + 5, a);
+        rivet(graphics, x + width - 5, y + 5, a);
+        crest(graphics, x + width / 2, y + 3, accent, a);
+    }
+
     public static void slot(
             GuiGraphicsExtractor graphics, int x, int y, int size, int accent, boolean selected, int opacity) {
         int a = clampAlpha(opacity);
-        fill(graphics, x + 2, y + 3, x + size + 2, y + size + 3, alpha(SHADOW, a));
-        fill(graphics, x, y, x + size, y + size, alpha(BLACK, a));
-        fill(graphics, x + 1, y + 1, x + size - 1, y + size - 1, alpha(STEEL, a));
-        fill(graphics, x + 2, y + 2, x + size - 2, y + size - 2, alpha(PANEL, a));
-        fill(graphics, x + 4, y + 4, x + size - 4, y + size - 4, alpha(PANEL_INNER, a));
-        fill(graphics, x + 3, y + 3, x + size - 3, y + 4, alpha(selected ? accent : STEEL_LIGHT, a));
-        fill(graphics, x + 3, y + size - 4, x + size - 3, y + size - 3,
-                alpha(selected ? accent : BLACK, a));
+        // Рисуем только фаски по краям, не перекрывая ванильную иконку предмета в центре.
+        fill(graphics, x, y, x + size, y + 1, alpha(BLACK, a));
+        fill(graphics, x, y + 1, x + 1, y + size - 1, alpha(STEEL_LIGHT, a));
+        fill(graphics, x + size - 1, y + 1, x + size, y + size - 1, alpha(BLACK, a));
+        fill(graphics, x, y + size - 1, x + size, y + size, alpha(BLACK, a));
+        fill(graphics, x + 2, y + 2, x + size - 2, y + 3, alpha(selected ? accent : STEEL, a));
+        fill(graphics, x + 2, y + size - 3, x + size - 2, y + size - 2,
+                alpha(selected ? accent : STEEL_DARK, a));
         if (selected) {
-            fill(graphics, x + 1, y + 1, x + 3, y + size - 1, alpha(accent, a));
-            fill(graphics, x + size - 3, y + 1, x + size - 1, y + size - 1, alpha(accent, a));
+            fill(graphics, x + 1, y + 1, x + 2, y + size - 1, alpha(accent, a));
+            fill(graphics, x + size - 2, y + 1, x + size - 1, y + size - 1, alpha(accent, a));
             fill(graphics, x + size / 2 - 2, y, x + size / 2 + 2, y + 2, alpha(STEEL_LIGHT, a));
         }
     }
