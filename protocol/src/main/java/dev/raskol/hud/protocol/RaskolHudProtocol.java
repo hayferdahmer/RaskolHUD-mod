@@ -7,6 +7,9 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -127,6 +130,9 @@ public final class RaskolHudProtocol {
             }
 
             long sampledAt = in.readLong();
+            if (sampledAt <= 0L) {
+                throw new IOException("Invalid RaskolHUD snapshot timestamp");
+            }
             String classId = readString(in);
             String className = readString(in);
             String specializationName = readString(in);
@@ -208,7 +214,8 @@ public final class RaskolHudProtocol {
             int stacks = in.readInt();
             boolean harmful = in.readBoolean();
 
-            if (remainingSeconds < -1 || durationSeconds < 0 || stacks < 1 || stacks > 99) {
+            if (remainingSeconds < -1 || remainingSeconds > 86_400
+                    || durationSeconds < 0 || durationSeconds > 86_400 || stacks < 1 || stacks > 99) {
                 throw new IOException("Invalid RaskolHUD combat effect values");
             }
 
@@ -340,7 +347,15 @@ public final class RaskolHudProtocol {
         if (encoded.length != length) {
             throw new EOFException("Truncated RaskolHUD string");
         }
-        return new String(encoded, StandardCharsets.UTF_8);
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(encoded))
+                    .toString();
+        } catch (CharacterCodingException exception) {
+            throw new IOException("Invalid UTF-8 in RaskolHUD packet", exception);
+        }
     }
 
     private static void writeVarInt(DataOutputStream out, int value) throws IOException {
