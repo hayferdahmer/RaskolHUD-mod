@@ -18,8 +18,8 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.minecraft.resources.Identifier;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class RaskolHudClient implements ClientModInitializer {
@@ -68,7 +68,7 @@ public final class RaskolHudClient implements ClientModInitializer {
                 VanillaHudElements.CROSSHAIR,
                 vanillaElement -> (graphics, deltaTracker) -> {
                     var state = HudStateStore.current();
-                    if (state == null) {
+                    if (state == null || !HudConfig.showClassCrosshair()) {
                         vanillaElement.extractRenderState(graphics, deltaTracker);
                     } else {
                         RaskolCrosshairRenderer.render(graphics, state);
@@ -80,7 +80,7 @@ public final class RaskolHudClient implements ClientModInitializer {
                 vanillaElement -> (graphics, deltaTracker) -> {
                     vanillaElement.extractRenderState(graphics, deltaTracker);
                     var state = HudStateStore.current();
-                    if (state != null) {
+                    if (state != null && HudConfig.showHotbarFrame()) {
                         RaskolHotbarRenderer.render(graphics, state);
                     }
                 });
