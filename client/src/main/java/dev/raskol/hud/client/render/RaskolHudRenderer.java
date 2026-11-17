@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import dev.raskol.hud.client.network.HudStateStore;
+import dev.raskol.hud.client.config.HudConfig;\nimport dev.raskol.hud.client.network.HudStateStore;
 import dev.raskol.hud.protocol.RaskolHudEffect;
 import dev.raskol.hud.protocol.RaskolHudSnapshot;
 import net.minecraft.client.DeltaTracker;
@@ -145,7 +145,7 @@ public final class RaskolHudRenderer {
         int columnWidth = half - 14;
         RaskolClassTheme theme = RaskolClassTheme.forClass(state.classId());
 
-        drawCrowdControl(graphics, font, state, screenWidth, y - 19);
+        if (HudConfig.showEffects()) {\n            drawCrowdControl(graphics, font, state, screenWidth, y - 19);\n        }
         drawFrame(graphics, x, y, width, STATUS_HEIGHT, withAlpha(theme.accent(), 190));
         graphics.fill(x + half, y + 6, x + half + 1, y + STATUS_HEIGHT - 6, DIVIDER);
 
