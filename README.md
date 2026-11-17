@@ -60,7 +60,7 @@
 
 1. Установи Minecraft 26.2 с Fabric Loader 0.19.5.
 2. Установи Fabric API версии 0.161.0+26.2 для этой же версии Minecraft.
-3. Скопируй `raskolhud-client-0.9.0-SNAPSHOT.jar` в папку `mods` используемого профиля Minecraft.
+3. Скопируй `raskolhud-client-1.0.0-rc.1.jar` в папку `mods` используемого профиля Minecraft.
    - В стандартном лаунчере Windows это обычно `%APPDATA%\\.minecraft\\mods`.
    - В стороннем лаунчере используй папку `mods` конкретного экземпляра/профиля.
 4. Запусти игру через Fabric-профиль.
@@ -69,14 +69,14 @@
 
 1. Убедись, что сервер работает на Paper 26.2 и Java 25.
 2. Установи на сервер актуальные плагины RaskolClasses и PlaceholderAPI.
-3. Скопируй `raskolhud-bridge-0.9.0-SNAPSHOT.jar` в папку `plugins` Paper-сервера.
+3. Скопируй `raskolhud-bridge-1.0.0-rc.1.jar` в папку `plugins` Paper-сервера.
 4. Перезапусти сервер.
 
 После этого подключись к серверу с Fabric-клиента. Клиент отправит handshake, мост начнёт отправлять данные игрока, а HUD появится после получения первого корректного снимка.
 
 **Не перепутай файлы:**
-- `raskolhud-client-0.9.0-SNAPSHOT.jar` → клиент Minecraft, папка `mods`.
-- `raskolhud-bridge-0.9.0-SNAPSHOT.jar` → Paper-сервер, папка `plugins`.
+- `raskolhud-client-1.0.0-rc.1.jar` → клиент Minecraft, папка `mods`.
+- `raskolhud-bridge-1.0.0-rc.1.jar` → Paper-сервер, папка `plugins`.
 
 ## Что проверить в первом запуске
 
@@ -119,8 +119,8 @@ gradle :protocol:test :client:build :bridge:build
 ```
 
 Артефакты:
-- `client/build/libs/raskolhud-client-0.9.0-SNAPSHOT.jar`
-- `bridge/build/libs/raskolhud-bridge-0.9.0-SNAPSHOT.jar`
+- `client/build/libs/raskolhud-client-1.0.0-rc.1.jar`
+- `bridge/build/libs/raskolhud-bridge-1.0.0-rc.1.jar`
 
 ## Статус
 
