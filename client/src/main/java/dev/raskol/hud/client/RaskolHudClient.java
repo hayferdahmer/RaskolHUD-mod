@@ -32,7 +32,9 @@ public final class RaskolHudClient implements ClientModInitializer {
         HudConfig.load();
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_SETTINGS.consumeClick()) {
-                client.gui.setScreen(new HudConfigScreen(client.gui.screen()));
+                if (client.gui.screen() == null) {
+                    client.gui.setScreen(new HudConfigScreen(null));
+                }
             }
         });
         PayloadTypeRegistry.serverboundPlay().register(HelloPayload.TYPE, HelloPayload.CODEC);
