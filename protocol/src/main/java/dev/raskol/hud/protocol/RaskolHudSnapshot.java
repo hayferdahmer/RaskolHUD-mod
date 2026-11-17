@@ -38,7 +38,7 @@ public record RaskolHudSnapshot(
         factionName = safe(factionName);
         titleName = safe(titleName);
 
-        characterLevel = Math.max(0, characterLevel);
+        characterLevel = Math.max(0, Math.min(60, characterLevel));
         healthMax = Math.max(0, healthMax);
         health = clampKnownMaximum(health, healthMax);
         resourceMax = Math.max(0, resourceMax);
