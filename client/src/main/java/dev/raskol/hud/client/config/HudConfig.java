@@ -54,9 +54,11 @@ public final class HudConfig {
         }
 
         Properties properties = new Properties();
+        boolean migrateConfig = false;
         try (Reader reader = Files.newBufferedReader(path)) {
             properties.load(reader);
             int storedVersion = parseInt(properties.getProperty("configVersion"), 1);
+            migrateConfig = storedVersion < CONFIG_VERSION;
             if (storedVersion > CONFIG_VERSION) {
                 System.err.println("[RaskolHUD] Конфиг создан более новой версией мода; неизвестные параметры могут быть потеряны при сохранении.");
             }
@@ -92,6 +94,10 @@ public final class HudConfig {
             System.err.println("[RaskolHUD] Не удалось прочитать настройки; восстановлены значения по умолчанию: "
                     + exception.getMessage());
             reset();
+            return;
+        }
+        if (migrateConfig) {
+            save();
         }
     }
 
