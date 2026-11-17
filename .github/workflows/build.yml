@@ -37,9 +37,9 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: raskolhud-0.7.0-snapshot-java25-mc26.2
+          name: raskolhud-0.8.0-snapshot-java25-mc26.2
           path: |
-            client/build/libs/raskolhud-client-0.7.0-SNAPSHOT.jar
-            bridge/build/libs/raskolhud-bridge-0.7.0-SNAPSHOT.jar
+            client/build/libs/raskolhud-client-0.8.0-SNAPSHOT.jar
+            bridge/build/libs/raskolhud-bridge-0.8.0-SNAPSHOT.jar
           if-no-files-found: error
           retention-days: 14
