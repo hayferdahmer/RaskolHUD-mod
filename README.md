@@ -113,8 +113,8 @@ gradle :protocol:test :client:build :bridge:build
 ```
 
 Артефакты:
-- `client/build/libs/raskolhud-client-0.5.1.jar`
-- `bridge/build/libs/raskolhud-bridge-0.5.1.jar`
+- `client/build/libs/raskolhud-client-0.6.0-SNAPSHOT.jar`
+- `bridge/build/libs/raskolhud-bridge-0.6.0-SNAPSHOT.jar`
 
 ## Статус
 
