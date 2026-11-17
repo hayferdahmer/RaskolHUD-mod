@@ -52,7 +52,8 @@ public final class RaskolHudFrameRenderer {
         rivet(graphics, x + width - 8, y + 8, a);
         rivet(graphics, x + 8, y + height - 8, a);
         rivet(graphics, x + width - 8, y + height - 8, a);
-        // Панель строится в собственных координатах без растягивания орнамента.
+        // Текстурная рамка рисуется девятью сегментами: углы не деформируются.
+        RaskolHudTextureRenderer.renderPanelFrame(graphics, x, y, width, height, a);
     }
 
     public static void hotbarPlate(
