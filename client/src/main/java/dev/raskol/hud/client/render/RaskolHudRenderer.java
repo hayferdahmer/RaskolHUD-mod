@@ -60,10 +60,25 @@ public final class RaskolHudRenderer {
         }
 
         Font font = client.font;
-        drawIdentity(graphics, font, player, state);
-        drawConnection(graphics, font, graphics.guiWidth());
-        drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight());
-        RaskolScoreboardRenderer.render(graphics, font, client, state);
+        double scale = HudConfig.scale();
+        float centerX = graphics.guiWidth() / 2.0F;
+        float centerY = graphics.guiHeight() / 2.0F;
+        graphics.pose().pushMatrix();
+        graphics.pose().translate((float) (centerX * (1.0D - scale)), (float) (centerY * (1.0D - scale)));
+        graphics.pose().scale((float) scale, (float) scale);
+        if (HudConfig.showIdentity()) {
+            drawIdentity(graphics, font, player, state);
+        }
+        if (HudConfig.showConnection()) {
+            drawConnection(graphics, font, graphics.guiWidth());
+        }
+        if (HudConfig.showStatus()) {
+            drawBottomStatus(graphics, font, player, state, graphics.guiWidth(), graphics.guiHeight());
+        }
+        if (HudConfig.showScoreboard()) {
+            RaskolScoreboardRenderer.render(graphics, font, client, state);
+        }
+        graphics.pose().popMatrix();
     }
 
     private static void drawIdentity(
