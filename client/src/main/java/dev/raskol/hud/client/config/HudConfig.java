@@ -69,7 +69,7 @@ public final class HudConfig {
             showClassCrosshair = readBoolean(properties, "showClassCrosshair", true);
             showCombatStats = readBoolean(properties, "showCombatStats", true);
             showTarget = readBoolean(properties, "showTarget", true);
-            scale = clamp(parseDouble(properties.getProperty("scale"), 1.0D), 0.75D, 1.50D);
+            scale = HudConfigValues.readScale(properties.getProperty("scale"), 1.0D);
             identityX = readOffset(properties, "identityX");
             identityY = readOffset(properties, "identityY");
             statusX = readOffset(properties, "statusX");
@@ -152,8 +152,7 @@ public final class HudConfig {
     }
 
     private static boolean readBoolean(Properties properties, String key, boolean fallback) {
-        String value = properties.getProperty(key);
-        return value == null ? fallback : Boolean.parseBoolean(value);
+        return HudConfigValues.readBoolean(properties.getProperty(key), fallback);
     }
 
     private static int parseInt(String value, int fallback) {
@@ -164,35 +163,11 @@ public final class HudConfig {
     private static int readOffset(Properties properties, String key) { return readOffset(properties, key, 0); }
 
     private static int readOffset(Properties properties, String key, int fallback) {
-        try {
-            return Math.max(-500, Math.min(500, Integer.parseInt(properties.getProperty(key, Integer.toString(fallback)))));
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
+        return HudConfigValues.readOffset(properties.getProperty(key), fallback);
     }
 
     private static int readPercent(Properties properties, String key) {
-        try {
-            int value = Integer.parseInt(properties.getProperty(key, "100"));
-            return Math.max(20, Math.min(100, value - value % 20));
-        } catch (NumberFormatException ignored) {
-            return 100;
-        }
-    }
-
-    private static double parseDouble(String value, double fallback) {
-        if (value == null) {
-            return fallback;
-        }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException ignored) {
-            return fallback;
-        }
-    }
-
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
+        return HudConfigValues.readOpacity(properties.getProperty(key));
     }
 
     private static int offset(int value, int delta) {
