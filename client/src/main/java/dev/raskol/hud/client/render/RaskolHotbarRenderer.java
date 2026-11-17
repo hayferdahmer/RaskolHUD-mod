@@ -48,6 +48,10 @@ public final class RaskolHotbarRenderer {
             RaskolHudFrameRenderer.slot(graphics, slotX, top - 2, 20, theme.accent(), selected, 100);
         }
 
+        // Золотистый орнамент взят из выбранного фэнтези-концепта №4.
+        // Он расположен над предметами и не перекрывает содержимое слотов.
+        RaskolHudTextureRenderer.renderFantasyHotbarOrnament(graphics, left - 9, top - 16, 200, 14, 100);
+
         Font font = client.font;
         Map<Integer, RaskolHudCooldown> cooldowns = new HashMap<>();
         for (RaskolHudCooldown cooldown : state.cooldowns()) {
