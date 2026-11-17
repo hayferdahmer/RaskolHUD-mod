@@ -15,6 +15,7 @@ public final class HudConfigScreen extends Screen {
 
     private final Screen parent;
     private int selectedPanel;
+    private Button opacityButton;
 
     public HudConfigScreen(Screen parent) {
         super(Component.literal("Настройки RaskolHUD"));
@@ -53,10 +54,11 @@ public final class HudConfigScreen extends Screen {
             button.setMessage(panelLabel());
             refreshOpacityButton();
         }).bounds(left, editorY, buttonWidth, BUTTON_HEIGHT).build());
-        addRenderableWidget(Button.builder(opacityLabel(), button -> {
+        opacityButton = Button.builder(opacityLabel(), button -> {
             HudConfig.cycleOpacity(selectedKey());
             button.setMessage(opacityLabel());
-        }).bounds(right, editorY, buttonWidth, BUTTON_HEIGHT).build());
+        }).bounds(right, editorY, buttonWidth, BUTTON_HEIGHT).build();
+        addRenderableWidget(opacityButton);
         row++;
 
         int moveY = top + row * rowHeight;
@@ -88,10 +90,8 @@ public final class HudConfigScreen extends Screen {
     }
 
     private void refreshOpacityButton() {
-        for (var widget : this.children()) {
-            if (widget instanceof Button button && button.getMessage().getString().startsWith("Прозрачность:")) {
-                button.setMessage(opacityLabel());
-            }
+        if (opacityButton != null) {
+            opacityButton.setMessage(opacityLabel());
         }
     }
 
